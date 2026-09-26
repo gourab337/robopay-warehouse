@@ -66,7 +66,7 @@ export default function App() {
       setStats(Object.fromEntries(entries))
     }
     poll()
-    const id = setInterval(poll, 3000)
+    const id = setInterval(poll, 6000)
     return () => clearInterval(id)
   }, [])
 

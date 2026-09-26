@@ -5,6 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
 import {JobMarket} from "../src/JobMarket.sol";
 import {ChargingDock} from "../src/ChargingDock.sol";
+import {HonkVerifier} from "../src/HonkVerifier.sol";
 
 /// Deployer = warehouse + dock operator. ROBOTS = comma-separated robot addresses to fund.
 contract Deploy is Script {
@@ -14,7 +15,8 @@ contract Deploy is Script {
 
         vm.startBroadcast();
         MockUSDC usdc = new MockUSDC();
-        JobMarket market = new JobMarket(usdc);
+        HonkVerifier verifier = new HonkVerifier();
+        JobMarket market = new JobMarket(usdc, verifier, vm.envBytes32("STATION_COMMITMENT"));
         ChargingDock dock = new ChargingDock(usdc, msg.sender, 0.1e6);
         usdc.mint(msg.sender, 1_000e6);
         for (uint256 i; i < robots.length; i++) {
@@ -26,5 +28,6 @@ contract Deploy is Script {
         console.log("MockUSDC", address(usdc));
         console.log("JobMarket", address(market));
         console.log("ChargingDock", address(dock));
+        console.log("HonkVerifier", address(verifier));
     }
 }

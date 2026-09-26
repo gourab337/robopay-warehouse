@@ -7,3 +7,7 @@ contracts/lib
 node_modules
 .playwright-mcp
 web/dist
+zk/target
+zk_commit/target
+zk/Prover.toml
+zk_commit/Prover.toml

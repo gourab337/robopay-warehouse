@@ -37,10 +37,12 @@ const addr = (name: string) => {
 }
 export const addresses = { market: addr('JobMarket'), dock: addr('ChargingDock'), usdc: addr('MockUSDC') }
 
-export const publicClient = createPublicClient({ chain, transport: http() })
+// JSON-RPC batching: many reads per tick become one HTTP request.
+const transport = () => http(undefined, { batch: { wait: 50 } })
+export const publicClient = createPublicClient({ chain, transport: transport(), pollingInterval: 1000 })
 
 export function walletFor(privateKey: string) {
   const account = privateKeyToAccount(privateKey as `0x${string}`)
-  return createWalletClient({ account, chain, transport: http() })
+  return createWalletClient({ account, chain, transport: transport() })
 }
 export type Wallet = ReturnType<typeof walletFor>

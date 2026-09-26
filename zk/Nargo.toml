@@ -1,0 +1,6 @@
+[package]
+name = "proof_of_delivery"
+type = "bin"
+authors = [""]
+
+[dependencies]

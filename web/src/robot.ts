@@ -7,15 +7,36 @@ export type TxLog = { who: string; action: string; hash: Hash; at: number }
 
 export const OPEN = 1
 export const SUBMITTED = 3
+const PAID = 4
 export const SUBJOB_REWARD = parseUnits('3', 6)
 const CHARGE_BELOW = 35
 const DRAIN_PER_STEP = 1.5
 
 export type Job = { id: bigint; poster: Address; worker: Address; reward: bigint; parentId: bigint; status: number; spec: string }
 
+// Physical handoff: the tote ID travels with the tote, never on-chain.
+const toteForJob = new Map<bigint, string>()
+
+async function api<T>(path: string): Promise<T> {
+  const r = await fetch(path)
+  const body = await r.json()
+  if (!r.ok) throw new Error(body.error ?? r.statusText)
+  return body as T
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-export async function readJobs(lastN = 30): Promise<Job[]> {
+// One shared, cached read of recent jobs so N robots don't each hammer the RPC (HSK rate-limits per IP).
+let jobsCache: { at: number; jobs: Promise<Job[]> } | null = null
+export function readJobs(lastN = 12): Promise<Job[]> {
+  if (jobsCache && Date.now() - jobsCache.at < 2000) return jobsCache.jobs
+  const jobs = fetchJobs(lastN)
+  jobsCache = { at: Date.now(), jobs }
+  jobs.catch(() => (jobsCache = null))
+  return jobs
+}
+
+async function fetchJobs(lastN: number): Promise<Job[]> {
   const count = (await publicClient.readContract({ address: addresses.market, abi: abis.market, functionName: 'jobCount' })) as bigint
   const ids: bigint[] = []
   for (let i = count; i > 0n && ids.length < lastN; i--) ids.push(i)
@@ -45,7 +66,7 @@ export async function sendTx(wallet: Wallet, who: string, log: (l: TxLog) => voi
   const hash = await wallet.writeContract({ ...request, nonce: await nextNonce(wallet.account.address) })
   const receipt = await publicClient.waitForTransactionReceipt({ hash })
   if (receipt.status === 'reverted') throw new Error(`${who} ${functionName} reverted`)
-  log({ who, action: `${functionName}(${args.map(String).join(', ')})`, hash, at: Date.now() })
+  log({ who, action: `${functionName}(${args.map((a) => String(a).slice(0, 18)).join(', ')})`, hash, at: Date.now() })
   return result
 }
 
@@ -101,7 +122,7 @@ export class Robot {
         if (this.battery < CHARGE_BELOW) await this.recharge()
         this.status = 'looking for work'
         const jobs = await readJobs()
-        const mine = jobs.filter((j) => j.status === OPEN && (this.role === 'picker' ? j.parentId === 0n : j.parentId !== 0n))
+        const mine = jobs.filter((j) => j.status === OPEN && (this.role === 'picker' ? j.parentId === 0n : toteForJob.has(j.id)))
         for (const job of mine.sort(() => Math.random() - 0.5)) {
           if (await this.tryAccept(job.id)) {
             await (this.role === 'picker' ? this.pick(job) : this.carry(job))
@@ -139,14 +160,22 @@ export class Robot {
     this.status = 'hiring carrier'
     const carry: CarrySpec = { from: spec.shelf, to: 'PACK' }
     const subId = (await this.tx('market', 'post', [JSON.stringify(carry), SUBJOB_REWARD, order.id])) as bigint
+    // Commit to the tote on-chain without revealing it; the carrier must prove delivery of exactly this tote.
+    const tote = String(Math.floor(Math.random() * 1e9))
+    this.status = 'committing tote (ZK)'
+    const { commitment } = await api<{ commitment: string }>(`/api/commit?tote=${tote}&job=${subId}`)
+    await this.tx('market', 'setToteCommitment', [subId, commitment])
+    toteForJob.set(subId, tote)
     this.status = `waiting for carrier (job #${subId})`
     for (;;) {
       const sub = (await readJobs()).find((j) => j.id === subId)
-      if (sub?.status === SUBMITTED) break
+      if (sub && sub.status >= SUBMITTED) break
       await sleep(1500)
     }
-    this.status = 'paying carrier'
-    await this.tx('market', 'confirm', [subId])
+    if ((await readJobs()).find((j) => j.id === subId)?.status !== PAID) {
+      this.status = 'paying carrier'
+      await this.tx('market', 'confirm', [subId])
+    }
     await this.tx('market', 'submit', [order.id, keccak256(toHex(`${spec.sku} packed`))])
   }
 
@@ -155,6 +184,11 @@ export class Robot {
     const spec = JSON.parse(job.spec) as CarrySpec
     await this.moveTo(SHELVES[spec.from], `collecting tote @ ${spec.from}`)
     await this.moveTo(PACK, 'carrying tote → pack')
-    await this.tx('market', 'submit', [job.id, keccak256(toHex(`job ${job.id} tote@PACK`))])
+    // Station scan reveals its secret to the robot; robot proves delivery in ZK and is paid by the verifier.
+    this.status = 'generating ZK proof'
+    const t0 = Date.now()
+    const { proof } = await api<{ proof: string }>(`/api/prove?tote=${toteForJob.get(job.id)}&job=${job.id}&carrier=${this.wallet.account.address}`)
+    this.status = `proof ${((Date.now() - t0) / 1000).toFixed(1)}s → verifying on-chain`
+    await this.tx('market', 'submitWithProof', [job.id, proof])
   }
 }

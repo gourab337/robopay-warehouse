@@ -5,11 +5,15 @@ import {Test} from "forge-std/Test.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
 import {JobMarket} from "../src/JobMarket.sol";
 import {ChargingDock} from "../src/ChargingDock.sol";
+import {HonkVerifier} from "../src/HonkVerifier.sol";
 
 contract JobMarketTest is Test {
     MockUSDC usdc;
     JobMarket market;
     ChargingDock dock;
+    bytes32 constant STATION = 0x0ca459d2d41ed0e8a64700e7171f724ab1616f2c7c652bc8614a4f4b46a05b7f;
+    bytes32 constant TOTE = 0x133ec82d91b2fed6ff122ad6338137c5111b4001edbf209da4836a2e0d6cb2e4;
+    address constant ZK_CARRIER = 0x199594c16c1F32cEa156367E13ea65B94eB67E8c; // carrier in zk/Prover.toml
 
     address warehouse = makeAddr("warehouse");
     address picker = makeAddr("picker");
@@ -18,7 +22,7 @@ contract JobMarketTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        market = new JobMarket(usdc);
+        market = new JobMarket(usdc, new HonkVerifier(), STATION);
         dock = new ChargingDock(usdc, dockOperator, 0.1e6);
         usdc.mint(warehouse, 100e6);
         usdc.mint(picker, 20e6);
@@ -98,5 +102,35 @@ contract JobMarketTest is Test {
         dock.charge(20);
         vm.stopPrank();
         assertEq(usdc.balanceOf(dockOperator), 2e6);
+    }
+
+    function _zkJob() private returns (uint256 id) {
+        vm.prank(warehouse);
+        id = market.post("carry tote", 3e6, 0); // job 1, matching zk/Prover.toml
+        vm.prank(warehouse);
+        market.setToteCommitment(id, TOTE);
+        vm.prank(ZK_CARRIER);
+        market.accept(id);
+    }
+
+    function test_ZkProofOfDeliveryPays() public {
+        uint256 id = _zkJob();
+        bytes memory proof = vm.readFileBinary("../zk/target/proof");
+        vm.prank(ZK_CARRIER);
+        market.submitWithProof(id, proof);
+        assertEq(usdc.balanceOf(ZK_CARRIER), 3e6);
+        assertEq(market.completed(ZK_CARRIER), 1);
+    }
+
+    function test_ZkProofRejectedForWrongTote() public {
+        uint256 id = _zkJob();
+        vm.prank(warehouse);
+        vm.expectRevert(); // commitment can only be set while Open
+        market.setToteCommitment(id, bytes32(uint256(1)));
+        bytes memory proof = vm.readFileBinary("../zk/target/proof");
+        proof[100] ^= 0x01; // tampered proof
+        vm.prank(ZK_CARRIER);
+        vm.expectRevert();
+        market.submitWithProof(id, proof);
     }
 }

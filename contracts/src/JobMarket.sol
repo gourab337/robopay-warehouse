@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IVerifier} from "./HonkVerifier.sol";
 
 /// @notice Escrowed jobs between any two wallets — warehouse→robot or robot→robot.
 /// Poster locks reward, worker accepts and submits, poster confirms receipt to release payment.
@@ -22,9 +23,12 @@ contract JobMarket {
     }
 
     IERC20 public immutable token;
+    IVerifier public immutable deliveryVerifier; // Noir proof-of-delivery circuit (zk/)
+    bytes32 public immutable stationCommitment; // pedersen(packing station scan secret)
     uint256 public jobCount;
     mapping(uint256 => Job) public jobs;
     mapping(address => uint256) public completed; // on-chain reputation
+    mapping(uint256 => bytes32) public toteCommitment; // pedersen(tote_id, job_id), set by poster
 
     event JobPosted(uint256 indexed id, address indexed poster, uint256 reward, uint256 parentId, string spec);
     event JobAccepted(uint256 indexed id, address indexed worker);
@@ -36,9 +40,12 @@ contract JobMarket {
     error NotPoster();
     error NotWorker();
     error ZeroReward();
+    error InvalidProof();
 
-    constructor(IERC20 _token) {
+    constructor(IERC20 _token, IVerifier _deliveryVerifier, bytes32 _stationCommitment) {
         token = _token;
+        deliveryVerifier = _deliveryVerifier;
+        stationCommitment = _stationCommitment;
     }
 
     function post(string calldata spec, uint256 reward, uint256 parentId) external returns (uint256 id) {
@@ -62,6 +69,33 @@ contract JobMarket {
         j.proof = proof;
         j.status = Status.Submitted;
         emit JobSubmitted(id, msg.sender, proof);
+    }
+
+    /// Poster commits to the tote without revealing it; the worker must later prove delivery of that tote.
+    function setToteCommitment(uint256 id, bytes32 commitment) external {
+        Job storage j = jobs[id];
+        if (msg.sender != j.poster) revert NotPoster();
+        _expect(id, Status.Open);
+        toteCommitment[id] = commitment;
+    }
+
+    /// Worker proves in zero knowledge that the packing station scanned the committed tote.
+    /// A valid proof replaces the poster's confirm: payment is released by math, not trust.
+    function submitWithProof(uint256 id, bytes calldata proof) external {
+        Job storage j = _expect(id, Status.Accepted);
+        if (msg.sender != j.worker) revert NotWorker();
+        bytes32[] memory inputs = new bytes32[](4);
+        inputs[0] = bytes32(id);
+        inputs[1] = bytes32(uint256(uint160(msg.sender)));
+        inputs[2] = toteCommitment[id];
+        inputs[3] = stationCommitment;
+        if (!deliveryVerifier.verify(proof, inputs)) revert InvalidProof();
+        j.proof = keccak256(proof);
+        j.status = Status.Paid;
+        completed[j.worker]++;
+        token.safeTransfer(j.worker, j.reward);
+        emit JobSubmitted(id, msg.sender, j.proof);
+        emit JobPaid(id, j.worker, j.reward);
     }
 
     function confirm(uint256 id) external {

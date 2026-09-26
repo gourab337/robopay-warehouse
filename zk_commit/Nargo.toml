@@ -1,0 +1,6 @@
+[package]
+name = "tote_commit"
+type = "bin"
+authors = [""]
+
+[dependencies]

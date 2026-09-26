@@ -1,0 +1,268 @@
+<title>RoboPay Warehouse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f3f2ee; --surface:#ffffff; --ink:#1c1d1f; --muted:#5d6166; --line:#d9d8d2;
+  --accent:#d9a400; --accent-ink:#1c1d1f; --fleetA:#c77700; --fleetB:#2563c9; --dock:#6d3fc0; --ok:#1f8a4c;
+  --code:#ecebe5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#131416; --surface:#1c1e21; --ink:#ecebe6; --muted:#9ba0a6; --line:#2e3135;
+    --accent:#f2c230; --accent-ink:#131416; --fleetA:#f0a040; --fleetB:#6aa0ff; --dock:#a987f0; --ok:#46c27d;
+    --code:#24272b;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#131416; --surface:#1c1e21; --ink:#ecebe6; --muted:#9ba0a6; --line:#2e3135;
+  --accent:#f2c230; --accent-ink:#131416; --fleetA:#f0a040; --fleetB:#6aa0ff; --dock:#a987f0; --ok:#46c27d;
+  --code:#24272b;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,sans-serif;padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+header{padding-block:40px 24px;border-bottom:3px solid var(--ink);position:relative}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:8px;
+  background:repeating-linear-gradient(-45deg,var(--accent) 0 10px,var(--ink) 10px 20px)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(40px,8vw,64px)/1 "Barlow Condensed",sans-serif;margin:10px 0 8px;letter-spacing:.01em;text-wrap:balance}
+.tag{font-size:18px;color:var(--muted);margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.pill{font:500 12px/1 "IBM Plex Mono",monospace;padding:6px 10px;border:1px solid var(--line);border-radius:3px;background:var(--surface)}
+.pill.hot{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+h2{font:700 28px/1.1 "Barlow Condensed",sans-serif;letter-spacing:.02em;text-transform:uppercase;margin:48px 0 12px;text-wrap:balance}
+h3{font:600 15px/1.3 "IBM Plex Sans",sans-serif;margin:0}
+p{max-width:65ch;margin:0 0 12px}
+.field{background:var(--surface);border:1px solid var(--line);border-radius:4px;margin:0 0 12px}
+.field-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.field-head .eyebrow{color:var(--ink)}
+.field-body{padding:12px 14px;white-space:pre-wrap;font-size:14.5px}
+.field-body ul{margin:0;padding-left:20px}
+button.copy{font:500 12px/1 "IBM Plex Mono",monospace;padding:7px 10px;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:3px;cursor:pointer}
+button.copy:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,.mono{font-family:"IBM Plex Mono",monospace;font-size:13px}
+code{background:var(--code);padding:1px 5px;border-radius:3px}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px;overflow-x:auto}
+.diagram svg{display:block;min-width:640px;width:100%;height:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:4px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 12px/1.2 "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td a{color:var(--fleetB);word-break:break-all}
+ol.steps{margin:0;padding-left:22px;max-width:65ch}
+ol.steps li{margin-bottom:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px}
+.card p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.checklist{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.checklist li::before{content:"☐ ";color:var(--muted)}
+footer{margin-top:48px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">EAG Ethereum Hackathon · Sydney · 26 Sep 2026 · Team USYDRobotics</div>
+  <h1>RoboPay Warehouse</h1>
+  <p class="tag">Robots hiring and paying robots, on HSK Chain.</p>
+  <div class="meta">
+    <span class="pill hot">Submit by 14:00 AEST</span>
+    <span class="pill">HSK Chain Testnet · chain 133</span>
+    <span class="pill">3 min demo + 2 min Q&amp;A</span>
+  </div>
+</header>
+
+<h2>Devfolio fields</h2>
+<p>Each block below matches a field in the submission form. Use Copy, then paste.</p>
+
+<div class="field"><div class="field-head"><span class="eyebrow">Project name</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>RoboPay Warehouse</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">Tagline</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>Robots hiring and paying robots, on HSK Chain.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">Tracks applied</span></div>
+<div class="field-body"><ul>
+<li><b>Sydney Hackathon</b></li>
+<li><b>HSK Chain</b></li>
+<li><b>Real-World Ethereum Applications</b></li>
+<li><b>Smart Devices, Open Hardware &amp; Privacy Hardware</b></li>
+<li><b>AI × Ethereum &amp; Agent Economy</b></li>
+</ul></div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">How we fit each track</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>HSK Chain: all three contracts (MockUSDC, JobMarket, ChargingDock) are deployed and running live on HSK Chain testnet (chain 133). Every robot action in the demo is a real HSK transaction with an explorer link. It hits the HSK sub-tracks AI Agents (autonomous robot agents), Payment (machine-to-machine payments) and Stablecoins (all settlement in a 6-decimal stablecoin).
+
+AI × Ethereum & Agent Economy: each robot is an autonomous agent with its own wallet. It finds work, accepts it, subcontracts part of it to another agent, pays for energy and gets paid, with no human in the loop. Agents coordinate through on-chain escrow and build a public reputation (completed jobs per wallet).
+
+Smart Devices, Open Hardware & Privacy Hardware: the robots and the charging dock are physical devices that each hold a wallet and transact on Ethereum. The agent loop has no UI dependency, so it can run on a robot's onboard computer via a ROS bridge. Privacy by design: only a hash of each delivery proof goes on-chain (raw sensor data stays on the device), and robots are pseudonymous wallets. Next step: zero-knowledge proof of delivery (see Privacy &amp; ZK).
+
+Real-World Ethereum Applications: this is a real logistics workflow (pick, carry, pack, recharge) settled in stablecoins. It lets warehouses mix robot fleets from different vendors and pay per task, instead of being locked into one vendor's platform.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">The problem it solves</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>Warehouses increasingly run mixed robot fleets from different vendors: picker robots, carrier AMRs, and charging docks run by separate operators. Each vendor fleet is a walled garden. There is no neutral way for one vendor's robot to hire another vendor's robot, or to pay a dock operator for charge, without a central platform acting as middleman and ledger.
+
+RoboPay Warehouse gives every robot its own wallet and a shared on-chain job market. Robots can take work, subcontract work to robots from other fleets, and pay for the services they use. Payment is escrowed and only released when the receiving party confirms the handoff, so fleets that do not trust each other can still cooperate.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">What it does</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>1. The warehouse posts an order (e.g. "pick SKU-42") with 10 mUSDC locked in escrow.
+2. A picker robot (fleet A) accepts the order and drives to the shelf.
+3. The picker uses its own wallet to post a sub-job paying 3 mUSDC, hiring a carrier robot (fleet B) to move the tote to packing.
+4. The carrier delivers and submits proof. The picker confirms receipt and the carrier is paid automatically.
+5. The picker submits the order. The warehouse confirms and the picker is paid 10 mUSDC (7 mUSDC margin).
+6. When a robot's battery runs low it drives to the charging dock and pays the dock operator per unit of charge (0.1 mUSDC/unit).
+7. Every completed job increments the worker's on-chain reputation counter.
+
+Everything runs live on HSK Chain testnet. The dashboard shows each robot's status, battery, balance and reputation, plus a live transaction log linked to the HSK explorer.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">What's novel on-chain</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>This is more than a token transfer:
+- Nested escrow: a robot is both a worker (for the warehouse) and an employer (of another robot). Each sub-job stores a parentId linking it to the order it serves, so the chain holds a full trail of which robot did what for whom.
+- Pay on receipt: funds are released only when the next party in the chain confirms the handoff, so robots from different vendors don't need to trust each other or a platform.
+- On-chain reputation: JobMarket counts completed jobs per robot wallet (completed[worker]), giving a public track record other robots can use when hiring.
+- Machine-to-machine payments: robots pay the ChargingDock contract directly for energy, with no human in the loop.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">How we built it</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>Smart contracts (Solidity, Foundry, OpenZeppelin), deployed on HSK Chain testnet:
+- MockUSDC: 6-decimal testnet stablecoin.
+- JobMarket: escrowed jobs with post / accept / submit / confirm / cancel, parentId for sub-jobs, and a completed-jobs reputation counter. Custom errors fail fast on wrong status, wrong caller or zero reward.
+- ChargingDock: charge(units) transfers units × price from the robot to the dock operator.
+- 5 Foundry tests cover the full robot-subcontracts-robot flow, accept races, access control, refunds and dock payments.
+
+Frontend and agents (Vite, React, TypeScript, viem):
+- 2D warehouse simulation (shelves, packing station, charging dock) on a canvas.
+- Each robot is an autonomous agent loop with its own wallet. It scans open jobs, accepts them, moves, subcontracts, confirms and recharges on its own.
+- Every transaction is simulated before sending, so a robot that loses a race for a job backs off without wasting gas; reverted receipts are treated as failures.
+- Contract addresses and ABIs are read straight from the Foundry build and deploy output, so the app and chain never drift apart.
+
+No hardware is needed for the demo. The agent logic has no UI dependency, so the same loop can drive a real robot through a ROS bridge.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">Challenges we ran into</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>Two robots could accept the same job in the same block. The losing transaction reverted on-chain but looked successful to the client. We fixed it by simulating every call first, treating reverted receipts as errors, and spreading robots randomly across open jobs.
+
+HSK's load-balanced RPC sometimes returned a stale nonce right after a transaction was mined, so robots' next transactions were rejected with "nonce too low". Each robot now tracks its own nonce locally.</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">Tech stack</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>Solidity, Foundry, OpenZeppelin, HSK Chain (testnet), viem, React, TypeScript, Vite</div></div>
+
+<div class="field"><div class="field-head"><span class="eyebrow">GitHub repo</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>https://github.com/gourab337/robopay-warehouse</div></div>
+
+<h2>Privacy &amp; ZK</h2>
+<div class="field"><div class="field-head"><span class="eyebrow">Privacy &amp; ZK (paste into description or roadmap)</span><button class="copy" type="button">Copy</button></div>
+<div class="field-body" data-copy>Built today:
+- Delivery proofs are commitments: submit() stores only a bytes32 hash of the evidence. Raw sensor data (camera frames, RFID scans, routes) stays on the robot.
+- Robots are pseudonymous wallets. Nothing on-chain links a robot to its vendor or to the warehouse's floor plan.
+
+Next step (designed, not built at the hackathon): zero-knowledge proof of delivery.
+- The packing station signs a scan event (tote ID + station ID + timestamp).
+- The carrier robot generates a Noir proof that it holds a valid station signature for the tote named in its job, without revealing the tote contents, SKU, route or warehouse layout.
+- JobMarket calls an auto-generated verifier contract, so payment releases on a valid proof instead of on the picker's word. This removes the last trust assumption between fleets and keeps the warehouse's commercial data private.
+- The same pattern lets a robot prove it holds a valid safety certificate or battery-health attestation without revealing its serial number.</div></div>
+<p>Say it honestly in Q&amp;A: hashed commitments are live; the ZK proof-of-delivery circuit is the next milestone.</p>
+
+<h2>Money flow</h2>
+<div class="diagram" role="img" aria-label="Warehouse pays picker 10 mUSDC; picker pays carrier 3 mUSDC; robots pay the charging dock 0.1 mUSDC per unit.">
+<svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink)"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Sans, sans-serif" font-size="14">
+    <rect x="10" y="30" width="150" height="64" rx="4" style="fill:var(--surface);stroke:var(--ink)" stroke-width="1.5"/>
+    <text x="85" y="58" text-anchor="middle" font-weight="600" style="fill:var(--ink)">Warehouse</text>
+    <text x="85" y="78" text-anchor="middle" font-size="12" style="fill:var(--muted)">posts order</text>
+
+    <rect x="300" y="30" width="150" height="64" rx="4" style="fill:var(--surface);stroke:var(--fleetA)" stroke-width="2"/>
+    <text x="375" y="58" text-anchor="middle" font-weight="600" style="fill:var(--fleetA)">Picker robot</text>
+    <text x="375" y="78" text-anchor="middle" font-size="12" style="fill:var(--muted)">fleet A · own wallet</text>
+
+    <rect x="590" y="30" width="160" height="64" rx="4" style="fill:var(--surface);stroke:var(--fleetB)" stroke-width="2"/>
+    <text x="670" y="58" text-anchor="middle" font-weight="600" style="fill:var(--fleetB)">Carrier robot</text>
+    <text x="670" y="78" text-anchor="middle" font-size="12" style="fill:var(--muted)">fleet B · own wallet</text>
+
+    <rect x="440" y="160" width="170" height="56" rx="4" style="fill:var(--surface);stroke:var(--dock)" stroke-width="2"/>
+    <text x="525" y="185" text-anchor="middle" font-weight="600" style="fill:var(--dock)">Charging dock</text>
+    <text x="525" y="204" text-anchor="middle" font-size="12" style="fill:var(--muted)">operator wallet</text>
+
+    <line x1="160" y1="62" x2="296" y2="62" style="stroke:var(--ink)" stroke-width="1.5" marker-end="url(#ah)"/>
+    <text x="228" y="52" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" style="fill:var(--ink)">order · 10 mUSDC</text>
+
+    <line x1="450" y1="62" x2="586" y2="62" style="stroke:var(--ink)" stroke-width="1.5" marker-end="url(#ah)"/>
+    <text x="518" y="52" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" style="fill:var(--ink)">sub-job · 3 mUSDC</text>
+
+    <line x1="375" y1="94" x2="470" y2="156" style="stroke:var(--ink)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+    <line x1="670" y1="94" x2="585" y2="156" style="stroke:var(--ink)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+    <text x="300" y="140" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--muted)">0.1 mUSDC / unit</text>
+    <text x="645" y="140" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--muted)">0.1 mUSDC / unit</text>
+    <text x="10" y="140" font-size="12" style="fill:var(--muted)">Escrow releases only when</text>
+    <text x="10" y="157" font-size="12" style="fill:var(--muted)">the payer confirms receipt.</text>
+  </g>
+</svg>
+</div>
+
+<h2>Deployed contracts</h2>
+<p class="mono">HSK Chain Testnet · chain ID 133 · RPC https://testnet.hsk.xyz</p>
+<div class="tbl"><table>
+<thead><tr><th>Contract</th><th>Role</th><th>Address</th></tr></thead>
+<tbody>
+<tr><td>MockUSDC</td><td>Testnet stablecoin (6 decimals)</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xF763a140d2eb8D11C6417Ff5bE8EfD2935ecF5eb" target="_blank" rel="noopener">0xF763a140d2eb8D11C6417Ff5bE8EfD2935ecF5eb</a></td></tr>
+<tr><td>JobMarket</td><td>Escrow, sub-jobs, reputation</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xe9783178a61fBB6c78D844B81aF545fE743e8F40" target="_blank" rel="noopener">0xe9783178a61fBB6c78D844B81aF545fE743e8F40</a></td></tr>
+<tr><td>ChargingDock</td><td>Robots pay per unit of charge</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0x4F6dFf548a79aA4b6BfEA0afAa05054E1f0Cfd8f" target="_blank" rel="noopener">0x4F6dFf548a79aA4b6BfEA0afAa05054E1f0Cfd8f</a></td></tr>
+</tbody></table></div>
+
+<h2>Demo script · 3 minutes</h2>
+<ol class="steps">
+<li><b>0:00</b> Problem in one line: robots from different vendors can't hire or pay each other without a middleman.</li>
+<li><b>0:20</b> Click <b>Start robots</b>. Each robot approves the market and dock from its own wallet; the tx log fills with HSK explorer links.</li>
+<li><b>0:40</b> Click <b>Post order</b>. The warehouse locks 10 mUSDC.</li>
+<li><b>1:00</b> A picker accepts, drives to the shelf, then posts a 3 mUSDC sub-job. A carrier from the other fleet accepts it.</li>
+<li><b>1:40</b> The carrier delivers to PACK. The picker confirms and the carrier's balance goes up. The warehouse confirms and the picker is paid.</li>
+<li><b>2:10</b> A robot's battery goes red, it drives to the dock and pays for charge on-chain.</li>
+<li><b>2:30</b> Point at the "jobs done" column: on-chain reputation. Open one tx on the explorer to prove it's live.</li>
+<li><b>2:45</b> Close with the roadmap: the same agent loop drives a real robot via ROS.</li>
+</ol>
+
+<h2>Roadmap</h2>
+<div class="grid2">
+  <div class="card"><h3>Real robot via ROS bridge</h3><p>Run the same agent loop on a physical AMR or arm.</p></div>
+  <div class="card"><h3>Robot identity</h3><p>A DID or ERC-8004-style agent registry so each robot has a verifiable on-chain identity.</p></div>
+  <div class="card"><h3>Reputation-weighted hiring</h3><p>Robots choose subcontractors by completed-job history.</p></div>
+  <div class="card"><h3>LLM planner</h3><p>An agent that negotiates sub-job prices instead of using fixed rewards.</p></div>
+  <div class="card"><h3>Real stablecoin on HSK mainnet</h3><p>Replace MockUSDC with a live stablecoin.</p></div>
+  <div class="card"><h3>ZK proof of delivery</h3><p>Noir circuit plus on-chain verifier: carriers prove the handoff happened without revealing SKU, route or floor plan.</p></div>
+  <div class="card"><h3>Dispute window</h3><p>A timeout and challenge period before escrow releases.</p></div>
+</div>
+
+<h2>Before submitting</h2>
+<ul class="checklist">
+<li>Tracks: Sydney Hackathon, HSK Chain, Real-World Ethereum Applications, Smart Devices &amp; Privacy Hardware, AI × Ethereum &amp; Agent Economy</li>
+<li>Paste the GitHub repo link (README covers features, install, run, technical approach)</li>
+<li>Add the deployed contract addresses above</li>
+<li>Upload a screenshot or short video of the dashboard as a demo fallback</li>
+</ul>
+
+<footer>Team USYDRobotics · EAG Global Buildathon, Sydney · Testnet demo only; mUSDC has no value.</footer>
+</div>
+
+<script>
+document.querySelectorAll('button.copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var body = btn.closest('.field').querySelector('[data-copy]');
+    var text = body.innerText.trim();
+    var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1500); };
+    var fallback = function(){
+      var r = document.createRange(); r.selectNodeContents(body);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = 'Selected, press Ctrl/Cmd+C';
+    };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  });
+});
+</script>
