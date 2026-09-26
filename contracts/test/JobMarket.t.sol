@@ -115,7 +115,7 @@ contract JobMarketTest is Test {
 
     function test_ZkProofOfDeliveryPays() public {
         uint256 id = _zkJob();
-        bytes memory proof = vm.readFileBinary("../zk/target/proof");
+        bytes memory proof = vm.readFileBinary("test/fixtures/proof_job1");
         vm.prank(ZK_CARRIER);
         market.submitWithProof(id, proof);
         assertEq(usdc.balanceOf(ZK_CARRIER), 3e6);
@@ -127,7 +127,7 @@ contract JobMarketTest is Test {
         vm.prank(warehouse);
         vm.expectRevert(); // commitment can only be set while Open
         market.setToteCommitment(id, bytes32(uint256(1)));
-        bytes memory proof = vm.readFileBinary("../zk/target/proof");
+        bytes memory proof = vm.readFileBinary("test/fixtures/proof_job1");
         proof[100] ^= 0x01; // tampered proof
         vm.prank(ZK_CARRIER);
         vm.expectRevert();

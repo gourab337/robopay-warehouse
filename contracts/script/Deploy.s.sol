@@ -21,7 +21,7 @@ contract Deploy is Script {
         usdc.mint(msg.sender, 1_000e6);
         for (uint256 i; i < robots.length; i++) {
             usdc.mint(robots[i], 50e6);
-            payable(robots[i]).transfer(gasPerRobot);
+            if (gasPerRobot > 0) payable(robots[i]).transfer(gasPerRobot);
         }
         vm.stopBroadcast();
 

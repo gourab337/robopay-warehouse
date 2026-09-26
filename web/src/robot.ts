@@ -63,7 +63,13 @@ export async function sendTx(wallet: Wallet, who: string, log: (l: TxLog) => voi
   const { request, result } = await publicClient.simulateContract({
     account: wallet.account, address: addresses[contract], abi: abis[contract], functionName, args,
   })
-  const hash = await wallet.writeContract({ ...request, nonce: await nextNonce(wallet.account.address) })
+  let hash: Hash
+  try {
+    hash = await wallet.writeContract({ ...request, nonce: await nextNonce(wallet.account.address) })
+  } catch (e) {
+    nonces.delete(wallet.account.address) // resync from chain so a failed send doesn't leave a nonce gap
+    throw e
+  }
   const receipt = await publicClient.waitForTransactionReceipt({ hash })
   if (receipt.status === 'reverted') throw new Error(`${who} ${functionName} reverted`)
   log({ who, action: `${functionName}(${args.map((a) => String(a).slice(0, 18)).join(', ')})`, hash, at: Date.now() })
@@ -167,9 +173,11 @@ export class Robot {
     await this.tx('market', 'setToteCommitment', [subId, commitment])
     toteForJob.set(subId, tote)
     this.status = `waiting for carrier (job #${subId})`
+    const deadline = Date.now() + 120_000
     for (;;) {
       const sub = (await readJobs()).find((j) => j.id === subId)
       if (sub && sub.status >= SUBMITTED) break
+      if (Date.now() > deadline) throw new Error(`carrier for job #${subId} timed out`)
       await sleep(1500)
     }
     if ((await readJobs()).find((j) => j.id === subId)?.status !== PAID) {
