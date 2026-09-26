@@ -6,6 +6,8 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 import {JobMarket} from "../src/JobMarket.sol";
 import {ChargingDock} from "../src/ChargingDock.sol";
 import {HonkVerifier} from "../src/HonkVerifier.sol";
+import {IKycSBT} from "../src/IKycSBT.sol";
+import {MockKycSBT} from "../src/MockKycSBT.sol";
 
 /// Deployer = warehouse + dock operator. ROBOTS = comma-separated robot addresses to fund.
 contract Deploy is Script {
@@ -16,7 +18,15 @@ contract Deploy is Script {
         vm.startBroadcast();
         MockUSDC usdc = new MockUSDC();
         HonkVerifier verifier = new HonkVerifier();
-        JobMarket market = new JobMarket(usdc, verifier, vm.envBytes32("STATION_COMMITMENT"));
+        // KYC_SBT = HashKey's live SBT (0xA45f42F09A7Ae50e556467cf65cF3Cf45711114E) once the operator is KYC'd;
+        // unset → deploy a mock that approves only the deployer (the warehouse operator) for the demo.
+        IKycSBT kyc = IKycSBT(vm.envOr("KYC_SBT", address(0)));
+        if (address(kyc) == address(0)) {
+            MockKycSBT mock = new MockKycSBT();
+            mock.approve(msg.sender, 1);
+            kyc = mock;
+        }
+        JobMarket market = new JobMarket(usdc, verifier, vm.envBytes32("STATION_COMMITMENT"), kyc);
         ChargingDock dock = new ChargingDock(usdc, msg.sender, 0.1e6);
         usdc.mint(msg.sender, 1_000e6);
         for (uint256 i; i < robots.length; i++) {
@@ -29,5 +39,6 @@ contract Deploy is Script {
         console.log("JobMarket", address(market));
         console.log("ChargingDock", address(dock));
         console.log("HonkVerifier", address(verifier));
+        console.log("KycSBT", address(kyc));
     }
 }

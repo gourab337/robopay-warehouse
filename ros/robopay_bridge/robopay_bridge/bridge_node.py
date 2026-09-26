@@ -34,7 +34,7 @@ class RoboPayBridge(Node):
         p = self.declare_parameter
         self.role = p('role', 'carrier').value  # picker | carrier
         rpc = p('rpc_url', 'https://testnet.hsk.xyz').value
-        market = p('market', '0xD12F51099bFc9ed2f42F0E8A9e129b9DfCC0efAD').value
+        market = p('market', '0xF0f0c15a7e05e81C11Dcbd1E2036A7fa83993351').value
         abi_path = p('market_abi', 'contracts/out/JobMarket.sol/JobMarket.json').value
         map_path = p('map', 'config/warehouse.yaml').value
         self.prover_url = p('prover_url', 'http://localhost:5199').value

@@ -1,4 +1,4 @@
-import { keccak256, maxUint256, parseUnits, toHex, type Address, type Hash } from 'viem'
+import { decodeEventLog, keccak256, maxUint256, parseUnits, toHex, type Address, type Hash, type TransactionReceipt } from 'viem'
 import { abis, addresses, publicClient, type Wallet } from './chain'
 import { DOCK, PACK, SHELVES, type CarrySpec, type OrderSpec, type Point } from './warehouse'
 
@@ -60,7 +60,7 @@ async function nextNonce(a: Address) {
 
 /** Simulate first (so a lost race reverts locally, not on chain), then send and wait. */
 export async function sendTx(wallet: Wallet, who: string, log: (l: TxLog) => void, contract: 'market' | 'dock' | 'usdc', functionName: string, args: unknown[]) {
-  const { request, result } = await publicClient.simulateContract({
+  const { request } = await publicClient.simulateContract({
     account: wallet.account, address: addresses[contract], abi: abis[contract], functionName, args,
   })
   let hash: Hash
@@ -73,7 +73,19 @@ export async function sendTx(wallet: Wallet, who: string, log: (l: TxLog) => voi
   const receipt = await publicClient.waitForTransactionReceipt({ hash })
   if (receipt.status === 'reverted') throw new Error(`${who} ${functionName} reverted`)
   log({ who, action: `${functionName}(${args.map((a) => String(a).slice(0, 18)).join(', ')})`, hash, at: Date.now() })
-  return result
+  return receipt
+}
+
+/** Job id from the mined JobPosted event — simulation results can come from a lagging RPC node. */
+function postedJobId(receipt: TransactionReceipt): bigint {
+  for (const l of receipt.logs) {
+    if (l.address.toLowerCase() !== addresses.market.toLowerCase()) continue
+    try {
+      const ev = decodeEventLog({ abi: abis.market, data: l.data, topics: l.topics })
+      if (ev.eventName === 'JobPosted') return (ev.args as unknown as { id: bigint }).id
+    } catch { /* other event */ }
+  }
+  throw new Error('JobPosted event not found')
 }
 
 export class Robot {
@@ -115,8 +127,16 @@ export class Robot {
     return new Promise<void>((r) => (this.arrived = r))
   }
 
-  private tx(contract: 'market' | 'dock' | 'usdc', fn: string, args: unknown[]) {
-    return sendTx(this.wallet, this.name, this.log, contract, fn, args)
+  /** retries > 0 for calls that depend on our own just-mined tx: HSK's load-balanced RPC can lag a block. */
+  private async tx(contract: 'market' | 'dock' | 'usdc', fn: string, args: unknown[], retries = 0) {
+    for (let i = 0; ; i++) {
+      try {
+        return await sendTx(this.wallet, this.name, this.log, contract, fn, args)
+      } catch (e) {
+        if (i >= retries) throw e
+        await sleep(1500)
+      }
+    }
   }
 
   async run() {
@@ -136,6 +156,7 @@ export class Robot {
           }
         }
       } catch (e) {
+        console.error(this.name, e)
         this.status = `error: ${(e as Error).message.slice(0, 60)}`
       }
       await sleep(1500)
@@ -165,12 +186,12 @@ export class Robot {
     await this.moveTo(SHELVES[spec.shelf], `picking ${spec.sku} @ ${spec.shelf}`)
     this.status = 'hiring carrier'
     const carry: CarrySpec = { from: spec.shelf, to: 'PACK' }
-    const subId = (await this.tx('market', 'post', [JSON.stringify(carry), SUBJOB_REWARD, order.id])) as bigint
+    const subId = postedJobId(await this.tx('market', 'post', [JSON.stringify(carry), SUBJOB_REWARD, order.id]))
     // Commit to the tote on-chain without revealing it; the carrier must prove delivery of exactly this tote.
     const tote = String(Math.floor(Math.random() * 1e9))
     this.status = 'committing tote (ZK)'
     const { commitment } = await api<{ commitment: string }>(`/api/commit?tote=${tote}&job=${subId}`)
-    await this.tx('market', 'setToteCommitment', [subId, commitment])
+    await this.tx('market', 'setToteCommitment', [subId, commitment], 6)
     toteForJob.set(subId, tote)
     this.status = `waiting for carrier (job #${subId})`
     const deadline = Date.now() + 120_000
@@ -182,9 +203,9 @@ export class Robot {
     }
     if ((await readJobs()).find((j) => j.id === subId)?.status !== PAID) {
       this.status = 'paying carrier'
-      await this.tx('market', 'confirm', [subId])
+      await this.tx('market', 'confirm', [subId], 6)
     }
-    await this.tx('market', 'submit', [order.id, keccak256(toHex(`${spec.sku} packed`))])
+    await this.tx('market', 'submit', [order.id, keccak256(toHex(`${spec.sku} packed`))], 6)
   }
 
   /** Carrier: move the tote from shelf to packing. */
@@ -197,6 +218,6 @@ export class Robot {
     const t0 = Date.now()
     const { proof } = await api<{ proof: string }>(`/api/prove?tote=${toteForJob.get(job.id)}&job=${job.id}&carrier=${this.wallet.account.address}`)
     this.status = `proof ${((Date.now() - t0) / 1000).toFixed(1)}s → verifying on-chain`
-    await this.tx('market', 'submitWithProof', [job.id, proof])
+    await this.tx('market', 'submitWithProof', [job.id, proof], 6)
   }
 }

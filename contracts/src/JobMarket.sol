@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IVerifier} from "./HonkVerifier.sol";
+import {IKycSBT} from "./IKycSBT.sol";
 
 /// @notice Escrowed jobs between any two wallets — warehouse→robot or robot→robot.
 /// Poster locks reward, worker accepts and submits, poster confirms receipt to release payment.
@@ -25,6 +26,8 @@ contract JobMarket {
     IERC20 public immutable token;
     IVerifier public immutable deliveryVerifier; // Noir proof-of-delivery circuit (zk/)
     bytes32 public immutable stationCommitment; // pedersen(packing station scan secret)
+    IKycSBT public immutable kyc; // HashKey KYC SBT: operators posting top-level orders must be verified
+    uint8 public constant MIN_KYC_LEVEL = 1; // BASIC
     uint256 public jobCount;
     mapping(uint256 => Job) public jobs;
     mapping(address => uint256) public completed; // on-chain reputation
@@ -41,15 +44,26 @@ contract JobMarket {
     error NotWorker();
     error ZeroReward();
     error InvalidProof();
+    error NotKycVerified();
+    error UnknownParent();
 
-    constructor(IERC20 _token, IVerifier _deliveryVerifier, bytes32 _stationCommitment) {
+    constructor(IERC20 _token, IVerifier _deliveryVerifier, bytes32 _stationCommitment, IKycSBT _kyc) {
         token = _token;
         deliveryVerifier = _deliveryVerifier;
         stationCommitment = _stationCommitment;
+        kyc = _kyc;
     }
 
     function post(string calldata spec, uint256 reward, uint256 parentId) external returns (uint256 id) {
         if (reward == 0) revert ZeroReward();
+        if (parentId == 0) {
+            // Compliance at the operator layer: only KYC-verified businesses can put work into the market.
+            (bool ok, uint8 lvl) = kyc.isHuman(msg.sender);
+            if (!ok || lvl < MIN_KYC_LEVEL) revert NotKycVerified();
+        } else if (jobs[parentId].worker != msg.sender) {
+            // Autonomy at the machine layer: a robot may subcontract only work it has accepted.
+            revert UnknownParent();
+        }
         id = ++jobCount;
         jobs[id] = Job(msg.sender, address(0), reward, parentId, Status.Open, bytes32(0), spec);
         token.safeTransferFrom(msg.sender, address(this), reward);

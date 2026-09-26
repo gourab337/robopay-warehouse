@@ -6,11 +6,13 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 import {JobMarket} from "../src/JobMarket.sol";
 import {ChargingDock} from "../src/ChargingDock.sol";
 import {HonkVerifier} from "../src/HonkVerifier.sol";
+import {MockKycSBT} from "../src/MockKycSBT.sol";
 
 contract JobMarketTest is Test {
     MockUSDC usdc;
     JobMarket market;
     ChargingDock dock;
+    MockKycSBT kyc;
     bytes32 constant STATION = 0x0ca459d2d41ed0e8a64700e7171f724ab1616f2c7c652bc8614a4f4b46a05b7f;
     bytes32 constant TOTE = 0x133ec82d91b2fed6ff122ad6338137c5111b4001edbf209da4836a2e0d6cb2e4;
     address constant ZK_CARRIER = 0x199594c16c1F32cEa156367E13ea65B94eB67E8c; // carrier in zk/Prover.toml
@@ -22,7 +24,9 @@ contract JobMarketTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        market = new JobMarket(usdc, new HonkVerifier(), STATION);
+        kyc = new MockKycSBT();
+        kyc.approve(warehouse, 1);
+        market = new JobMarket(usdc, new HonkVerifier(), STATION, kyc);
         dock = new ChargingDock(usdc, dockOperator, 0.1e6);
         usdc.mint(warehouse, 100e6);
         usdc.mint(picker, 20e6);
@@ -132,5 +136,19 @@ contract JobMarketTest is Test {
         vm.prank(ZK_CARRIER);
         vm.expectRevert();
         market.submitWithProof(id, proof);
+    }
+
+    function test_NonKycCannotPostOrder() public {
+        vm.expectRevert(JobMarket.NotKycVerified.selector);
+        vm.prank(picker);
+        market.post("x", 1e6, 0);
+    }
+
+    function test_RobotCanOnlySubcontractItsOwnJob() public {
+        vm.prank(warehouse);
+        uint256 order = market.post("x", 1e6, 0);
+        vm.expectRevert(JobMarket.UnknownParent.selector);
+        vm.prank(carrier);
+        market.post("sub", 1e6, order);
     }
 }

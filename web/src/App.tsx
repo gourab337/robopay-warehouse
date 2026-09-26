@@ -10,12 +10,14 @@ const warehouse = walletFor(import.meta.env.VITE_WAREHOUSE_KEY)
 const FLEET_COLOR = { picker: '#f59e0b', carrier: '#3b82f6' }
 
 type Stats = Record<string, { usdc: string; done: string }>
+const KYC_ABI = [{ type: 'function', name: 'isHuman', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'bool' }, { type: 'uint8' }] }] as const
 
 export default function App() {
   const [logs, setLogs] = useState<TxLog[]>([])
   const [, setFrame] = useState(0)
   const [stats, setStats] = useState<Stats>({})
   const [started, setStarted] = useState(false)
+  const [kycLevel, setKycLevel] = useState<number | null>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const log = (l: TxLog) => setLogs((prev) => [l, ...prev].slice(0, 40))
 
@@ -66,6 +68,12 @@ export default function App() {
       setStats(Object.fromEntries(entries))
     }
     poll()
+    // Operator compliance straight from the KYC SBT that JobMarket enforces.
+    ;(async () => {
+      const kyc = (await publicClient.readContract({ address: addresses.market, abi: abis.market, functionName: 'kyc' })) as Address
+      const [ok, lvl] = await publicClient.readContract({ address: kyc, abi: KYC_ABI, functionName: 'isHuman', args: [warehouse.account.address] })
+      setKycLevel(ok ? lvl : 0)
+    })()
     const id = setInterval(poll, 6000)
     return () => clearInterval(id)
   }, [])
@@ -87,7 +95,7 @@ export default function App() {
         <table style={{ width: '100%', fontSize: 13 }}>
           <thead><tr><th align="left">wallet</th><th align="left">status</th><th>batt</th><th>mUSDC</th><th>jobs done</th></tr></thead>
           <tbody>
-            <tr><td>warehouse</td><td>posts orders</td><td /><td align="center">{stats.warehouse?.usdc}</td><td /></tr>
+            <tr><td>warehouse</td><td>posts orders · {kycLevel === null ? 'KYC …' : kycLevel > 0 ? <span style={{ color: '#34d399' }}>KYC L{kycLevel} ✓</span> : <span style={{ color: '#ef4444' }}>not KYC'd</span>}</td><td /><td align="center">{stats.warehouse?.usdc}</td><td /></tr>
             {robots.current.map((r) => (
               <tr key={r.name}>
                 <td style={{ color: FLEET_COLOR[r.role] }}>{r.name}</td>
