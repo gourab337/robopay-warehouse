@@ -1,0 +1,9 @@
+.wallets.txt
+.env
+web/.env
+contracts/out
+contracts/cache
+contracts/lib
+node_modules
+.playwright-mcp
+web/dist

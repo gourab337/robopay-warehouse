@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test} from "forge-std/Test.sol";
+import {MockUSDC} from "../src/MockUSDC.sol";
+import {JobMarket} from "../src/JobMarket.sol";
+import {ChargingDock} from "../src/ChargingDock.sol";
+
+contract JobMarketTest is Test {
+    MockUSDC usdc;
+    JobMarket market;
+    ChargingDock dock;
+
+    address warehouse = makeAddr("warehouse");
+    address picker = makeAddr("picker");
+    address carrier = makeAddr("carrier");
+    address dockOperator = makeAddr("dockOperator");
+
+    function setUp() public {
+        usdc = new MockUSDC();
+        market = new JobMarket(usdc);
+        dock = new ChargingDock(usdc, dockOperator, 0.1e6);
+        usdc.mint(warehouse, 100e6);
+        usdc.mint(picker, 20e6);
+        usdc.mint(carrier, 20e6);
+        for (uint256 i; i < 3; i++) {
+            address a = [warehouse, picker, carrier][i];
+            vm.prank(a);
+            usdc.approve(address(market), type(uint256).max);
+        }
+    }
+
+    function test_RobotSubcontractsRobot() public {
+        vm.prank(warehouse);
+        uint256 order = market.post("pick SKU-42", 10e6, 0);
+
+        vm.prank(picker);
+        market.accept(order);
+
+        vm.prank(picker);
+        uint256 sub = market.post("carry tote to pack", 3e6, order);
+        vm.prank(carrier);
+        market.accept(sub);
+        vm.prank(carrier);
+        market.submit(sub, keccak256("tote@pack"));
+        vm.prank(picker);
+        market.confirm(sub);
+
+        vm.prank(picker);
+        market.submit(order, keccak256("SKU-42 packed"));
+        vm.prank(warehouse);
+        market.confirm(order);
+
+        assertEq(usdc.balanceOf(carrier), 23e6);
+        assertEq(usdc.balanceOf(picker), 27e6); // 20 - 3 + 10
+        assertEq(usdc.balanceOf(warehouse), 90e6);
+        assertEq(usdc.balanceOf(address(market)), 0);
+        assertEq(market.completed(picker), 1);
+        assertEq(market.completed(carrier), 1);
+    }
+
+    function test_SecondAcceptReverts() public {
+        vm.prank(warehouse);
+        uint256 id = market.post("x", 1e6, 0);
+        vm.prank(picker);
+        market.accept(id);
+        vm.expectRevert(abi.encodeWithSelector(JobMarket.WrongStatus.selector, JobMarket.Status.Open, JobMarket.Status.Accepted));
+        vm.prank(carrier);
+        market.accept(id);
+    }
+
+    function test_OnlyWorkerSubmits_OnlyPosterConfirms() public {
+        vm.prank(warehouse);
+        uint256 id = market.post("x", 1e6, 0);
+        vm.prank(picker);
+        market.accept(id);
+        vm.expectRevert(JobMarket.NotWorker.selector);
+        vm.prank(carrier);
+        market.submit(id, 0);
+        vm.prank(picker);
+        market.submit(id, 0);
+        vm.expectRevert(JobMarket.NotPoster.selector);
+        vm.prank(picker);
+        market.confirm(id);
+    }
+
+    function test_CancelRefundsOpenJob() public {
+        vm.prank(warehouse);
+        uint256 id = market.post("x", 5e6, 0);
+        vm.prank(warehouse);
+        market.cancel(id);
+        assertEq(usdc.balanceOf(warehouse), 100e6);
+    }
+
+    function test_RobotPaysDock() public {
+        vm.startPrank(picker);
+        usdc.approve(address(dock), type(uint256).max);
+        dock.charge(20);
+        vm.stopPrank();
+        assertEq(usdc.balanceOf(dockOperator), 2e6);
+    }
+}
