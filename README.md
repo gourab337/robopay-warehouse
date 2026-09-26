@@ -51,6 +51,7 @@ web/        Vite + React + viem
   warehouse.ts      warehouse map (shelves, packing, dock)
   chain.ts          HSK chain config; addresses read from forge broadcast
   App.tsx           2D warehouse sim + fleet table + live on-chain tx log
+ros/robopay_bridge/  ROS 2 (rclpy) node: same agent loop on a real robot — Nav2 goals + HSK wallet + ZK proof
 ```
 No hardware needed for the demo — robots are simulated; the agent loop is the part that would run on a real robot (ROS bridge).
 
@@ -80,7 +81,7 @@ Click **Start robots**, then **Post order**. Use `VITE_CHAIN=anvil` for a local 
 - Robots are simulated; mUSDC is a testnet token with no value.
 
 ## Roadmap
-- ROS bridge to drive real robots with the same agent loop
+- Run `ros/robopay_bridge` on a real AMR / in Gazebo (written, syntax-checked, not yet run on hardware)
 - Robot identity registry + reputation-weighted hiring
 - LLM planner that negotiates sub-job prices
 - Post-and-commit in one call, salted commitments, rotating station secrets

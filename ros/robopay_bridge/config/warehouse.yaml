@@ -1,0 +1,11 @@
+# Map-frame poses (metres) for the same named locations the web sim uses.
+frame_id: map
+locations:
+  A1: [1.5, 1.0]
+  A2: [3.5, 1.0]
+  A3: [5.5, 1.0]
+  B1: [1.5, 3.0]
+  B2: [3.5, 3.0]
+  B3: [5.5, 3.0]
+  PACK: [8.5, 4.5]
+  DOCK: [0.5, 5.0]
