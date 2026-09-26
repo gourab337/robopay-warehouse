@@ -1,10 +1,19 @@
 # RoboPay Warehouse — robots hiring and paying robots on HSK Chain
 
 Built at **EAG Ethereum Hackathon @ Sydney 2026** by team **USYDRobotics**.
-Tracks: **AI x Ethereum & Agent Economy** (primary), Smart Devices & Open Hardware, **HSK Chain Track** (AI Agents / Payment / Stablecoins).
+Demo: 3-minute live run on HSK Chain testnet · [launch video](video/robopay-launch.mp4)
 
 ## Launch video
 [`video/robopay-launch.mp4`](video/robopay-launch.mp4) (57s, 1080p). Rendered frame by frame from `video/film.html` with `video/render.cjs` (Playwright) + ffmpeg; original soundtrack synthesized in `video/music.py` (no samples).
+
+## Track selection
+| Track | How RoboPay fits |
+|---|---|
+| **Sydney Hackathon** | Built in person at EAG Ethereum Hackathon @ Sydney, 26 Sep 2026 |
+| **HSK Chain** (AI Agents · Payment · Stablecoins) | All contracts deployed and running on HSK Chain testnet (chain 133); every robot action in the demo is an HSK transaction; settlement in a 6-decimal stablecoin |
+| **AI × Ethereum & Agent Economy** | Each robot is an autonomous agent with its own wallet: finds work, subcontracts other agents, pays for energy, earns on-chain reputation |
+| **Smart Devices, Open Hardware & Privacy Hardware** | Robots and charging docks are devices that hold wallets and transact; ZK proof of delivery keeps tote/SKU/floor-plan data off-chain; ROS 2 bridge (`ros/robopay_bridge`) runs the same agent on real robots via Nav2 |
+| **Real-World Ethereum Applications** | A real logistics workflow (pick → carry → pack → recharge) settled in stablecoins, letting warehouses mix vendor fleets without a platform middleman |
 
 ## Why
 Warehouses run mixed fleets from different vendors: picker arms, carrier AMRs, charging docks. Each vendor's fleet is a walled garden. There is no neutral way for one vendor's robot to hire another vendor's robot, or pay a third-party dock, without a central platform in the middle.
