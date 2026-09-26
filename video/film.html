@@ -78,6 +78,18 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:
     <div class="abs chip" id="cap" style="left:0;top:980px"></div>
   </div>
 
+  <!-- S6b ROS -->
+  <div class="abs" id="s6b" style="inset:0">
+    <div class="abs center h1" id="rt" style="top:120px;font-size:84px"></div>
+    <div class="abs" id="rwin" style="left:360px;top:300px;width:1200px;height:520px;border-radius:22px;border:1px solid rgba(255,255,255,.16);background:rgba(12,10,20,.85);box-shadow:0 50px 140px rgba(20,241,149,.18);overflow:hidden">
+      <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><em>ros/robopay_bridge/bridge_node.py</em></div>
+      <pre id="rcode" class="mono" style="padding:30px 40px;font-size:27px;line-height:1.55;color:#f4f2ff;white-space:pre"></pre>
+    </div>
+    <div class="abs" id="rchips" style="left:0;right:0;top:870px;display:flex;gap:18px;justify-content:center">
+      <span class="chip">ROS 2 · rclpy</span><span class="chip">Nav2 NavigateToPose</span><span class="chip">robot's own HSK wallet</span><span class="chip">ZK proof at PACK</span>
+    </div>
+  </div>
+
   <!-- S7 stats -->
   <div class="abs" id="s7" style="inset:0;display:flex;align-items:center;justify-content:center;gap:40px">
     <div class="stat" id="st1"><div class="n grad">28s</div><div class="l">order → robots paid, end to end</div></div>
@@ -125,6 +137,14 @@ const W3 = words($('s3sub'), 'Robots hiring and paying robots. On HSK Chain.')
 const W4 = words($('s4t'), 'Robots hire robots. With their own wallets.')
 const W5 = words($('s5t'), 'Proof of delivery. Zero knowledge.')
 const W6 = words($('s6t'), 'Live on HSK Chain testnet.')
+const WR = words($('rt'), 'Same agent. Real robots.')
+const ROS_CODE = `def carry(self, job, tote):
+    self.drive_to(spec['from'])      # Nav2 goal
+    self.drive_to('PACK')
+    proof = prove_delivery(tote, job, self.wallet)
+    self.tx('submitWithProof', job['id'], proof)`
+const esc = (x) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+const hl = (x) => esc(x).replace(/(#.*)/g, '<span style="color:#8b87a3">$1</span>').replace(/\b(def|self)\b/g, '<span style="color:#9945ff">$1</span>').replace(/('[^']*')/g, '<span style="color:#14f195">$1</span>')
 const W8 = words($('s8a'), "Robots shouldn't need a middleman to get paid.")
 $('s8b').innerHTML = ['Solidity', 'Noir ZK', 'UltraHonk verifier', 'HSK Chain', 'viem'].map((x) => `<span class="chip">${x}</span>`).join('')
 
@@ -231,23 +251,32 @@ async function seek(t) {
   $('cap').textContent = cap[1]; $('cap').style.opacity = ci
   $('cap').style.left = '50%'; $('cap').style.transform = `translateX(-50%) translateY(${(1 - ci) * 20}px)`; $('cap').style.fontSize = '26px'
 
-  // S7 stats 41.4–46.2
-  const s7 = win(t, 41.4, 46.2, .4, .5)
-  show($('s7'), s7)
-  ;['st1', 'st2', 'st3'].forEach((id, i) => { const x = back(k(t, 41.6 + i * .25, 42.3 + i * .25)); $(id).style.opacity = eo(k(t, 41.6 + i * .25, 42.0 + i * .25)); $(id).style.transform = `translateY(${(1 - x) * 70}px)` })
+  // S6b ROS 41.4–46.6
+  const sr = win(t, 41.4, 46.6, .4, .5)
+  show($('s6b'), sr)
+  reveal(WR, t, 41.6, .07)
+  const code = ROS_CODE, n = Math.floor(code.length * eio(k(t, 42.2, 45.2)))
+  $('rcode').innerHTML = hl(code.slice(0, n)) + (Math.floor(t * 3) % 2 ? '<span style="color:#14f195">▍</span>' : '')
+  const rc = eo(k(t, 41.8, 42.4)); $('rwin').style.opacity = rc; $('rwin').style.transform = `translateY(${(1 - rc) * 60}px)`
+  ;[...$('rchips').children].forEach((c, i) => { const x = back(k(t, 42.6 + i * .15, 43.1 + i * .15)); c.style.opacity = eo(k(t, 42.6 + i * .15, 42.9 + i * .15)); c.style.transform = `scale(${lerp(.7, 1, x)})` })
 
-  // S8 close 46.0–52
-  const s8 = win(t, 46.0, 52.5, .5, .01)
+  // S7 stats 46.4–51.2
+  const s7 = win(t, 46.4, 51.2, .4, .5)
+  show($('s7'), s7)
+  ;['st1', 'st2', 'st3'].forEach((id, i) => { const x = back(k(t, 46.6 + i * .25, 47.3 + i * .25)); $(id).style.opacity = eo(k(t, 46.6 + i * .25, 47.0 + i * .25)); $(id).style.transform = `translateY(${(1 - x) * 70}px)` })
+
+  // S8 close 51.0–52
+  const s8 = win(t, 51.0, 57.5, .5, .01)
   show($('s8'), s8)
-  const lx2 = back(k(t, 46.1, 47.0)); $('logo2').style.transform = `scale(${lerp(.7, 1, lx2)})`; $('logo2').style.filter = `blur(${(1 - eo(k(t, 46.1, 46.8))) * 24}px)`
-  reveal(W8, t, 46.8, .06)
-  ;[...$('s8b').children].forEach((c, i) => { const x = eo(k(t, 48.0 + i * .08, 48.5 + i * .08)); c.style.opacity = x; c.style.transform = `translateY(${(1 - x) * 30}px)` })
-  $('s8c').style.opacity = eo(k(t, 48.8, 49.4))
-  const fadeOut = 1 - k(t, 51.8, 52.5)
+  const lx2 = back(k(t, 51.1, 52.0)); $('logo2').style.transform = `scale(${lerp(.7, 1, lx2)})`; $('logo2').style.filter = `blur(${(1 - eo(k(t, 51.1, 51.8))) * 24}px)`
+  reveal(W8, t, 51.8, .06)
+  ;[...$('s8b').children].forEach((c, i) => { const x = eo(k(t, 53.0 + i * .08, 53.5 + i * .08)); c.style.opacity = x; c.style.transform = `translateY(${(1 - x) * 30}px)` })
+  $('s8c').style.opacity = eo(k(t, 53.8, 54.4))
+  const fadeOut = 1 - k(t, 56.8, 57.5)
   $('stage').style.opacity = Math.min(fadeOut, eo(k(t, 0, .4)) + (t > .4 ? 1 : 0))
 }
 window.seek = seek
-window.DURATION = 52.5
+window.DURATION = 57.5
 </script>
 <!-- footer line in S8 is added by render script if needed -->
 </body></html>

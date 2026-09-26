@@ -4,7 +4,7 @@ Built at **EAG Ethereum Hackathon @ Sydney 2026** by team **USYDRobotics**.
 Tracks: **AI x Ethereum & Agent Economy** (primary), Smart Devices & Open Hardware, **HSK Chain Track** (AI Agents / Payment / Stablecoins).
 
 ## Launch video
-[`video/robopay-launch.mp4`](video/robopay-launch.mp4) (52s, 1080p). Rendered frame by frame from `video/film.html` with `video/render.cjs` (Playwright) + ffmpeg.
+[`video/robopay-launch.mp4`](video/robopay-launch.mp4) (57s, 1080p). Rendered frame by frame from `video/film.html` with `video/render.cjs` (Playwright) + ffmpeg; original soundtrack synthesized in `video/music.py` (no samples).
 
 ## Why
 Warehouses run mixed fleets from different vendors: picker arms, carrier AMRs, charging docks. Each vendor's fleet is a walled garden. There is no neutral way for one vendor's robot to hire another vendor's robot, or pay a third-party dock, without a central platform in the middle.
