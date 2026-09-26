@@ -1,0 +1,253 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07060b;--p:#9945ff;--g:#14f195;--b:#19c3ff;--o:#ffb020;--ink:#f4f2ff;--mut:#8b87a3}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Inter Tight",sans-serif}
+#stage{position:absolute;inset:0;overflow:hidden}
+.abs{position:absolute}
+.center{left:0;right:0;text-align:center}
+.grid{inset:-200px;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:80px 80px}
+.orb{border-radius:50%;filter:blur(120px)}
+.h1{font-weight:800;letter-spacing:-.03em;word-spacing:.08em;line-height:.95}
+.w{display:inline-block;will-change:transform,opacity,filter}
+.grad{background:linear-gradient(90deg,var(--p),var(--b) 50%,var(--g));-webkit-background-clip:text;background-clip:text;color:transparent}
+.chip{font:600 22px "JetBrains Mono",monospace;padding:12px 22px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);backdrop-filter:blur(8px)}
+.node{width:300px;height:150px;border-radius:28px;border:1.5px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.node b{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.node span{font:500 18px "JetBrains Mono",monospace;color:var(--mut)}
+.mono{font-family:"JetBrains Mono",monospace}
+.frame{width:1280px;height:760px;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.16);box-shadow:0 60px 160px rgba(153,69,255,.35),0 0 0 1px rgba(0,0,0,.4);background:#0b0f17}
+.bar{height:40px;background:#15131d;display:flex;align-items:center;gap:9px;padding:0 16px}
+.bar i{width:13px;height:13px;border-radius:50%;display:block}
+.bar em{font:500 15px "JetBrains Mono",monospace;color:var(--mut);margin-left:18px;font-style:normal}
+.stat{width:380px;text-align:left}
+.stat .n{font-size:120px;font-weight:800;letter-spacing:-.05em;line-height:1}
+.stat .l{font-size:26px;color:var(--mut);margin-top:10px}
+</style></head>
+<body><div id="stage">
+  <div class="abs grid" id="grid"></div>
+  <div class="abs orb" id="orb1" style="width:900px;height:900px;background:var(--p);opacity:.0"></div>
+  <div class="abs orb" id="orb2" style="width:800px;height:800px;background:var(--g);opacity:.0"></div>
+
+  <!-- S1 problem -->
+  <div class="abs center h1" id="s1a" style="top:390px;font-size:112px"></div>
+  <div class="abs center h1" id="s1b" style="top:520px;font-size:112px;color:var(--mut)"></div>
+
+  <!-- S2 can't pay -->
+  <div class="abs center h1" id="s2" style="top:420px;font-size:150px"></div>
+  <svg class="abs" id="s2robots" width="1920" height="1080" style="left:0;top:0"></svg>
+
+  <!-- S3 logo -->
+  <div class="abs center" id="s3" style="top:360px">
+    <div class="h1 grad" id="logo" style="font-size:230px;display:inline-block">RoboPay</div>
+    <div id="s3sub" style="font-size:46px;font-weight:500;color:var(--ink);margin-top:26px;letter-spacing:-.02em"></div>
+  </div>
+
+  <!-- S4 flow -->
+  <div class="abs" id="s4" style="inset:0">
+    <div class="abs center h1" id="s4t" style="top:120px;font-size:72px"></div>
+    <svg class="abs" id="flow" width="1920" height="1080" style="left:0;top:0"></svg>
+    <div class="abs node" id="nW" style="left:150px;top:470px"><b>Warehouse</b><span>posts order</span></div>
+    <div class="abs node" id="nP" style="left:620px;top:470px;border-color:rgba(255,176,32,.6)"><b style="color:var(--o)">Picker</b><span>fleet A · own wallet</span></div>
+    <div class="abs node" id="nC" style="left:1090px;top:470px;border-color:rgba(25,195,255,.6)"><b style="color:var(--b)">Carrier</b><span>fleet B · own wallet</span></div>
+    <div class="abs node" id="nD" style="left:1560px;top:470px;width:220px;border-color:rgba(153,69,255,.6)"><b style="color:var(--p)">⚡ Dock</b><span>per-unit</span></div>
+    <div class="abs chip" id="c1" style="left:330px;top:390px">10 mUSDC escrow</div>
+    <div class="abs chip" id="c2" style="left:790px;top:390px">hires robot · 3 mUSDC</div>
+    <div class="abs chip" id="c3" style="left:1330px;top:700px">pays for charge</div>
+  </div>
+
+  <!-- S5 ZK -->
+  <div class="abs" id="s5" style="inset:0">
+    <div class="abs center h1" id="s5t" style="top:140px;font-size:84px"></div>
+    <div class="abs mono" id="hashes" style="left:260px;top:360px;width:1400px;font-size:28px;line-height:1.7;color:var(--mut);text-align:center"></div>
+    <div class="abs center" id="proofBox" style="top:640px">
+      <div class="chip" id="pchip" style="display:inline-block;font-size:30px;padding:20px 36px"></div>
+    </div>
+    <div class="abs center h1" id="s5v" style="top:790px;font-size:64px"></div>
+  </div>
+
+  <!-- S6 demo -->
+  <div class="abs" id="s6" style="inset:0">
+    <div class="abs center h1" id="s6t" style="top:60px;font-size:58px"></div>
+    <div class="abs frame" id="frame" style="left:320px;top:190px">
+      <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><em>robopay · HSK Chain Testnet · live</em></div>
+      <img id="demo" style="width:1280px;height:720px;display:block">
+    </div>
+    <div class="abs chip" id="cap" style="left:0;top:980px"></div>
+  </div>
+
+  <!-- S7 stats -->
+  <div class="abs" id="s7" style="inset:0;display:flex;align-items:center;justify-content:center;gap:40px">
+    <div class="stat" id="st1"><div class="n grad">28s</div><div class="l">order → robots paid, end to end</div></div>
+    <div class="stat" id="st2"><div class="n grad">1.6s</div><div class="l">ZK proof on a laptop CPU</div></div>
+    <div class="stat" id="st3"><div class="n grad">0</div><div class="l">middlemen</div></div>
+  </div>
+
+  <!-- S8 close -->
+  <div class="abs center" id="s8" style="top:300px">
+    <div class="h1 grad" id="logo2" style="font-size:190px;display:inline-block">RoboPay</div>
+    <div id="s8a" class="h1" style="font-size:52px;font-weight:600;margin-top:34px;letter-spacing:-.025em"></div>
+    <div id="s8b" style="margin-top:60px;display:flex;gap:18px;justify-content:center"></div>
+    <div id="s8c" class="mono" style="margin-top:70px;font-size:24px;color:var(--mut)">USYDRobotics · EAG Ethereum Hackathon @ Sydney 2026 · github.com/gourab337/robopay-warehouse</div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id)
+const clamp = (x) => Math.max(0, Math.min(1, x))
+const k = (t, a, b) => clamp((t - a) / (b - a))
+const eo = (x) => 1 - Math.pow(1 - x, 4)            // easeOutQuart
+const eio = (x) => x < .5 ? 8*x*x*x*x : 1 - Math.pow(-2*x+2, 4)/2
+const back = (x) => { const c = 1.7; return 1 + (c+1)*Math.pow(x-1,3) + c*Math.pow(x-1,2) }
+const lerp = (a, b, x) => a + (b - a) * x
+// scene window: fade in over [a,a+i], out over [b-o,b]
+const win = (t, a, b, i = .5, o = .5) => Math.min(eo(k(t, a, a + i)), 1 - eio(k(t, b - o, b)))
+
+function words(el, text, cls = '') {
+  el.innerHTML = text.split(' ').map((w) => `<span class="w ${cls}">${w}</span>`).join(' ')
+  return [...el.querySelectorAll('.w')]
+}
+function reveal(ws, t, start, stagger = .07, dur = .6, dy = 60) {
+  ws.forEach((w, i) => {
+    const x = eo(k(t, start + i * stagger, start + i * stagger + dur))
+    w.style.opacity = x
+    w.style.transform = `translateY(${(1 - x) * dy}px)`
+    w.style.filter = `blur(${(1 - x) * 14}px)`
+  })
+}
+function show(el, v) { el.style.opacity = v; el.style.visibility = v <= 0.001 ? 'hidden' : 'visible' }
+
+const W1 = words($('s1a'), 'Warehouses run robots')
+const W1b = words($('s1b'), 'from five different vendors.')
+const W2 = words($('s2'), "They can't pay each other.")
+const W3 = words($('s3sub'), 'Robots hiring and paying robots. On HSK Chain.')
+const W4 = words($('s4t'), 'Robots hire robots. With their own wallets.')
+const W5 = words($('s5t'), 'Proof of delivery. Zero knowledge.')
+const W6 = words($('s6t'), 'Live on HSK Chain testnet.')
+const W8 = words($('s8a'), "Robots shouldn't need a middleman to get paid.")
+$('s8b').innerHTML = ['Solidity', 'Noir ZK', 'UltraHonk verifier', 'HSK Chain', 'viem'].map((x) => `<span class="chip">${x}</span>`).join('')
+
+// robots for S2: two fleets separated by walls
+const R = $('s2robots')
+R.innerHTML = [0,1,2].map(i => `<circle id="ra${i}" r="26" fill="#ffb020"/>`).join('') + [0,1,2].map(i => `<circle id="rb${i}" r="26" fill="#19c3ff"/>`).join('') +
+  `<rect id="wall" x="956" width="8" rx="4" fill="#ff4d6d"/>`
+
+// flow svg paths
+const F = $('flow')
+F.innerHTML = `
+  <defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#9945ff"/><stop offset="1" stop-color="#14f195"/></linearGradient></defs>
+  <path id="p1" d="M450 545 L620 545" stroke="url(#lg)" stroke-width="4" fill="none"/>
+  <path id="p2" d="M920 545 L1090 545" stroke="url(#lg)" stroke-width="4" fill="none"/>
+  <path id="p3" d="M1390 545 L1560 545" stroke="url(#lg)" stroke-width="4" fill="none" stroke-dasharray="10 10"/>
+  ${[0,1,2,3,4,5].map(i => `<circle id="coin${i}" r="12" fill="#14f195" style="filter:drop-shadow(0 0 12px #14f195)"/>`).join('')}`
+
+const HEX = '0123456789abcdef'
+function rhex(seed, n) { let s = ''; for (let i = 0; i < n; i++) { const x = Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453; s += HEX[Math.floor((x - Math.floor(x)) * 16)] } return s }
+
+const DEMO_FRAMES = 420
+let lastDemo = -1
+async function seek(t) {
+  // background
+  $('grid').style.transform = `translate(${(t * 12) % 80}px, ${(t * 8) % 80}px)`
+  $('grid').style.opacity = .5 + .5 * eo(k(t, 0, 1.5))
+  $('orb1').style.left = 400 + 600 * Math.sin(t * .25) + 'px'; $('orb1').style.top = -300 + 200 * Math.cos(t * .2) + 'px'
+  $('orb2').style.left = 900 + 500 * Math.cos(t * .22) + 'px'; $('orb2').style.top = 500 + 150 * Math.sin(t * .3) + 'px'
+  $('orb1').style.opacity = .22 * eo(k(t, 0, 2)); $('orb2').style.opacity = .14 * eo(k(t, 0, 2))
+
+  // S1 0–4.2
+  const s1 = win(t, 0, 4.2, .01, .5)
+  show($('s1a'), s1); show($('s1b'), s1)
+  reveal(W1, t, .3); reveal(W1b, t, 1.2)
+  $('s1a').style.transform = $('s1b').style.transform = `scale(${lerp(1, 1.06, k(t, 0, 4.2))})`
+
+  // S2 4.0–8.2
+  const s2 = win(t, 4.0, 8.2, .3, .5)
+  show($('s2'), s2); show(R, s2)
+  reveal(W2, t, 4.1, .08, .5, 80)
+  const shake = t > 5.2 && t < 5.6 ? Math.sin(t * 90) * 10 : 0
+  $('s2').style.transform = `translateX(${shake}px) translateY(-140px)`
+  ;[0,1,2].forEach(i => {
+    const x = eo(k(t, 4.3 + i * .1, 5.1 + i * .1))
+    $('ra' + i).setAttribute('cx', lerp(-60, 700 - i * 110, x)); $('ra' + i).setAttribute('cy', 720 + i * 20)
+    $('rb' + i).setAttribute('cx', lerp(1980, 1220 + i * 110, x)); $('rb' + i).setAttribute('cy', 720 + i * 20)
+  })
+  const wh = eo(k(t, 5.0, 5.5)); $('wall').setAttribute('y', 780 - 160 * wh); $('wall').setAttribute('height', 320 * wh)
+
+  // S3 logo 8.0–12.4
+  const s3 = win(t, 8.0, 12.4, .01, .5)
+  show($('s3'), s3)
+  const lx = back(k(t, 8.1, 9.0))
+  $('logo').style.transform = `scale(${lerp(.6, 1, lx)})`; $('logo').style.opacity = eo(k(t, 8.1, 8.6))
+  $('logo').style.filter = `blur(${(1 - eo(k(t, 8.1, 8.8))) * 30}px)`
+  $('logo').style.backgroundSize = '200% 100%'; $('logo').style.backgroundPosition = `${lerp(100, 0, eo(k(t, 8.1, 11)))}% 0`
+  reveal(W3, t, 9.1, .06, .55, 40)
+
+  // S4 flow 12.2–20.6
+  const s4 = win(t, 12.2, 20.6, .4, .5)
+  show($('s4'), s4)
+  reveal(W4, t, 12.4, .06)
+  ;['nW', 'nP', 'nC', 'nD'].forEach((id, i) => {
+    const x = back(k(t, 12.8 + i * .5, 13.5 + i * .5))
+    $(id).style.opacity = eo(k(t, 12.8 + i * .5, 13.3 + i * .5)); $(id).style.transform = `translateY(${(1 - x) * 80}px) scale(${lerp(.85, 1, x)})`
+  })
+  ;[['p1', 13.4], ['p2', 14.0], ['p3', 14.6]].forEach(([id, a]) => {
+    const p = $(id), L = p.getTotalLength(); p.style.strokeDasharray = id === 'p3' ? '10 10' : L; p.style.strokeDashoffset = id === 'p3' ? 0 : L * (1 - eo(k(t, a, a + .6))); p.style.opacity = eo(k(t, a, a + .3))
+  })
+  const coinOn = (i, path, a, b) => { const c = $('coin' + i), x = eio(k(t, a, b)), p = $(path), pt = p.getPointAtLength(p.getTotalLength() * x); c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); c.style.opacity = t > a && t < b + .15 ? 1 : 0 }
+  coinOn(0, 'p1', 15.2, 16.0); coinOn(1, 'p1', 15.5, 16.3)
+  coinOn(2, 'p2', 16.6, 17.4); coinOn(3, 'p2', 16.9, 17.7)
+  coinOn(4, 'p3', 18.2, 19.0); coinOn(5, 'p3', 18.5, 19.3)
+  ;[['c1', 15.0], ['c2', 16.4], ['c3', 18.0]].forEach(([id, a]) => { const x = back(k(t, a, a + .5)); $(id).style.opacity = eo(k(t, a, a + .3)); $(id).style.transform = `scale(${lerp(.7, 1, x)})` })
+
+  // S5 ZK 20.4–27.6
+  const s5 = win(t, 20.4, 27.6, .4, .5)
+  show($('s5'), s5)
+  reveal(W5, t, 20.6, .08)
+  const lock = k(t, 22.0, 24.2)
+  const lines = ['tote_id', 'station_secret', 'job_id', 'carrier']
+  $('hashes').innerHTML = lines.map((n, i) => {
+    const hidden = i < 2
+    const settled = lock > (i + 1) / 5
+    const val = hidden ? (settled ? '●●●●●●●●●●●● <span style="color:#14f195">private</span>' : rhex(Math.floor(t * 30) + i * 97, 24)) : (settled ? '<span style="color:#f4f2ff">public input</span>' : rhex(Math.floor(t * 30) + i * 31, 24))
+    return `<div style="opacity:${eo(k(t, 21.2 + i * .15, 21.7 + i * .15))}"><span style="color:#9945ff">${n}</span> &nbsp; ${val}</div>`
+  }).join('')
+  const pc = back(k(t, 24.2, 24.9)); $('pchip').style.opacity = eo(k(t, 24.2, 24.5)); $('pchip').style.transform = `scale(${lerp(.6, 1, pc)})`
+  $('pchip').innerHTML = `π · 8.4 KB proof · <span style="color:#14f195">${Math.min(1.6, (k(t, 24.2, 25.4) * 1.6)).toFixed(1)}s</span> on laptop CPU`
+  if (!$('s5v').dataset.w) { $('s5v').dataset.w = 1; window.W5v = words($('s5v'), '✓ Verified on-chain. Paid by math, not trust.', 'grad') }
+  reveal(window.W5v, t, 25.4, .06)
+
+  // S6 demo 27.4–41.6
+  const s6 = win(t, 27.4, 41.6, .5, .6)
+  show($('s6'), s6)
+  reveal(W6, t, 27.6, .07)
+  const fz = eo(k(t, 27.5, 28.8))
+  $('frame').style.transform = `perspective(2400px) rotateX(${lerp(22, 4, fz) - 4 * k(t, 29, 41)}deg) translateY(${lerp(220, 0, fz)}px) scale(${lerp(.85, 1, fz) + .03 * k(t, 29, 41)})`
+  const fi = Math.max(1, Math.min(DEMO_FRAMES, Math.floor((t - 28.0) * 30) + 1))
+  if (fi !== lastDemo) { const img = $('demo'); img.src = `demo/f${String(fi).padStart(4, '0')}.jpg`; lastDemo = fi; await img.decode().catch(() => {}) }
+  const caps = [[28.2, 'Warehouse posts an order · 10 mUSDC in escrow'], [32.5, 'Picker hires a carrier from another fleet'], [35.8, 'Carrier proves delivery in ZK → verified on HSK'], [38.8, 'Robots paid. Every step is an HSK transaction.']]
+  let cap = caps[0]; for (const c of caps) if (t >= c[0]) cap = c
+  const ci = eo(k(t, cap[0], cap[0] + .4))
+  $('cap').textContent = cap[1]; $('cap').style.opacity = ci
+  $('cap').style.left = '50%'; $('cap').style.transform = `translateX(-50%) translateY(${(1 - ci) * 20}px)`; $('cap').style.fontSize = '26px'
+
+  // S7 stats 41.4–46.2
+  const s7 = win(t, 41.4, 46.2, .4, .5)
+  show($('s7'), s7)
+  ;['st1', 'st2', 'st3'].forEach((id, i) => { const x = back(k(t, 41.6 + i * .25, 42.3 + i * .25)); $(id).style.opacity = eo(k(t, 41.6 + i * .25, 42.0 + i * .25)); $(id).style.transform = `translateY(${(1 - x) * 70}px)` })
+
+  // S8 close 46.0–52
+  const s8 = win(t, 46.0, 52.5, .5, .01)
+  show($('s8'), s8)
+  const lx2 = back(k(t, 46.1, 47.0)); $('logo2').style.transform = `scale(${lerp(.7, 1, lx2)})`; $('logo2').style.filter = `blur(${(1 - eo(k(t, 46.1, 46.8))) * 24}px)`
+  reveal(W8, t, 46.8, .06)
+  ;[...$('s8b').children].forEach((c, i) => { const x = eo(k(t, 48.0 + i * .08, 48.5 + i * .08)); c.style.opacity = x; c.style.transform = `translateY(${(1 - x) * 30}px)` })
+  $('s8c').style.opacity = eo(k(t, 48.8, 49.4))
+  const fadeOut = 1 - k(t, 51.8, 52.5)
+  $('stage').style.opacity = Math.min(fadeOut, eo(k(t, 0, .4)) + (t > .4 ? 1 : 0))
+}
+window.seek = seek
+window.DURATION = 52.5
+</script>
+<!-- footer line in S8 is added by render script if needed -->
+</body></html>
