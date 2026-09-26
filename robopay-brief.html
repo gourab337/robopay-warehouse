@@ -96,7 +96,7 @@ footer{margin-top:48px;font-size:13px;color:var(--muted)}
 </ul></div></div>
 
 <div class="field"><div class="field-head"><span class="eyebrow">How we fit each track</span><button class="copy" type="button">Copy</button></div>
-<div class="field-body" data-copy>HSK Chain: all three contracts (MockUSDC, JobMarket, ChargingDock) are deployed and running live on HSK Chain testnet (chain 133). Every robot action in the demo is a real HSK transaction with an explorer link. It hits the HSK sub-tracks AI Agents (autonomous robot agents), Payment (machine-to-machine payments) and Stablecoins (all settlement in a 6-decimal stablecoin).
+<div class="field-body" data-copy>HSK Chain: all contracts are deployed and running live on HSK Chain testnet (chain 133), and JobMarket integrates HashKey's KYC SBT interface (IKycSBT.isHuman): only KYC-verified operators can post orders, while robots subcontract freely. Compliance at the operator layer, autonomy at the machine layer. (The live SBT is 0xA45f42F09A7Ae50e556467cf65cF3Cf45711114E; the testnet KYC on-ramp isn't self-serve, so the demo uses a mock with the same interface.) Every robot action in the demo is a real HSK transaction with an explorer link. It hits the HSK sub-tracks AI Agents (autonomous robot agents), Payment (machine-to-machine payments) and Stablecoins (all settlement in a 6-decimal stablecoin).
 
 AI × Ethereum & Agent Economy: each robot is an autonomous agent with its own wallet. It finds work, accepts it, subcontracts part of it to another agent, pays for energy and gets paid, with no human in the loop. Agents coordinate through on-chain escrow and build a public reputation (completed jobs per wallet).
 
@@ -124,6 +124,7 @@ Everything runs live on HSK Chain testnet. The dashboard shows each robot's stat
 <div class="field-body" data-copy>This is more than a token transfer:
 - Nested escrow: a robot is both a worker (for the warehouse) and an employer (of another robot). Each sub-job stores a parentId linking it to the order it serves, so the chain holds a full trail of which robot did what for whom.
 - Pay on receipt: funds are released only when the next party in the chain confirms the handoff, so robots from different vendors don't need to trust each other or a platform.
+- HashKey KYC SBT: only KYC-verified operators can post top-level orders; a robot can only subcontract work it has accepted.
 - On-chain reputation: JobMarket counts completed jobs per robot wallet (completed[worker]), giving a public track record other robots can use when hiring.
 - Machine-to-machine payments: robots pay the ChargingDock contract directly for energy, with no human in the loop.</div></div>
 
@@ -211,10 +212,11 @@ Honest limits of the prototype: the station secret is a demo constant (in produc
 <div class="tbl"><table>
 <thead><tr><th>Contract</th><th>Role</th><th>Address</th></tr></thead>
 <tbody>
-<tr><td>MockUSDC</td><td>Testnet stablecoin (6 decimals)</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xb8aAFbB569ac3b04276643864166bA2513Dd0265" target="_blank" rel="noopener">0xb8aAFbB569ac3b04276643864166bA2513Dd0265</a></td></tr>
-<tr><td>JobMarket</td><td>Escrow, sub-jobs, reputation</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xD12F51099bFc9ed2f42F0E8A9e129b9DfCC0efAD" target="_blank" rel="noopener">0xD12F51099bFc9ed2f42F0E8A9e129b9DfCC0efAD</a></td></tr>
-<tr><td>HonkVerifier</td><td>Verifies ZK proof of delivery (generated from Noir)</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xD9530e5b835E30FfE5a137De22E306187b2F1455" target="_blank" rel="noopener">0xD9530e5b835E30FfE5a137De22E306187b2F1455</a></td></tr>
-<tr><td>ChargingDock</td><td>Robots pay per unit of charge</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xFb5919455f7a2965BbBbF04c4BAf19485d14F0A6" target="_blank" rel="noopener">0xFb5919455f7a2965BbBbF04c4BAf19485d14F0A6</a></td></tr>
+<tr><td>MockUSDC</td><td>Testnet stablecoin (6 decimals)</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xB3d41620d0f2b58187bBc0879D340CE4266596E0" target="_blank" rel="noopener">0xB3d41620d0f2b58187bBc0879D340CE4266596E0</a></td></tr>
+<tr><td>JobMarket</td><td>Escrow, sub-jobs, reputation</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xF0f0c15a7e05e81C11Dcbd1E2036A7fa83993351" target="_blank" rel="noopener">0xF0f0c15a7e05e81C11Dcbd1E2036A7fa83993351</a></td></tr>
+<tr><td>HonkVerifier</td><td>Verifies ZK proof of delivery (generated from Noir)</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0x965410B5922680efF96d80856629Df07Bd9fcC46" target="_blank" rel="noopener">0x965410B5922680efF96d80856629Df07Bd9fcC46</a></td></tr>
+<tr><td>KYC SBT (demo mock)</td><td>HashKey KYC SBT interface; approves only the warehouse operator</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xeba7B6A010ecC6e607694d10Ea83611141c904cC" target="_blank" rel="noopener">0xeba7B6A010ecC6e607694d10Ea83611141c904cC</a></td></tr>
+<tr><td>ChargingDock</td><td>Robots pay per unit of charge</td><td class="mono"><a href="https://testnet-explorer.hskchain.net/address/0xcB1Fa73A9AC9081A97a034514B12d22b838b7CE4" target="_blank" rel="noopener">0xcB1Fa73A9AC9081A97a034514B12d22b838b7CE4</a></td></tr>
 </tbody></table></div>
 
 <h2>Demo script · 3 minutes</h2>
