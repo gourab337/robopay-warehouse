@@ -10,7 +10,7 @@ export const SUBMITTED = 3
 const PAID = 4
 export const SUBJOB_REWARD = parseUnits('3', 6)
 const CHARGE_BELOW = 35
-const DRAIN_PER_STEP = 1.5
+const DRAIN_PER_STEP = 2.5 // high enough that a carrier needs the dock after ~1 delivery, so the demo shows it
 
 export type Job = { id: bigint; poster: Address; worker: Address; reward: bigint; parentId: bigint; status: number; spec: string }
 
@@ -155,7 +155,7 @@ export class Robot {
   private async recharge() {
     await this.moveTo(DOCK, 'low battery → dock')
     this.status = 'paying dock'
-    await this.tx('dock', 'charge', [BigInt(Math.ceil(100 - this.battery))])
+    await this.tx('dock', 'charge', [BigInt(Math.ceil((100 - this.battery) / 5))]) // 1 unit = 5% battery
     this.battery = 100
   }
 
