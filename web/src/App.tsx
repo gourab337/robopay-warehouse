@@ -2,15 +2,34 @@ import { useEffect, useRef, useState } from 'react'
 import { formatUnits, maxUint256, parseUnits, type Address } from 'viem'
 import { abis, addresses, chain, explorerTx, publicClient, walletFor } from './chain'
 import { Robot, SUBMITTED, readJobs, sendTx, type TxLog } from './robot'
-import { DOCK, GRID, PACK, SHELVES, type OrderSpec } from './warehouse'
+import { DOCK, GRID, PACK, SHELVES, type OrderSpec, type Point } from './warehouse'
+import './app.css'
 
 const ORDER_REWARD = parseUnits('10', 6)
 const keys = (v: string | undefined) => (v ?? '').split(',').filter(Boolean)
 const warehouse = walletFor(import.meta.env.VITE_WAREHOUSE_KEY)
-const FLEET_COLOR = { picker: '#f59e0b', carrier: '#3b82f6' }
+const FLEET_COLOR = { picker: '#ffb020', carrier: '#19c3ff' }
+const KYC_ABI = [{ type: 'function', name: 'isHuman', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'bool' }, { type: 'uint8' }] }] as const
+const DPR = 2
 
 type Stats = Record<string, { usdc: string; done: string }>
-const KYC_ABI = [{ type: 'function', name: 'isHuman', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'bool' }, { type: 'uint8' }] }] as const
+
+/** Human-readable event for the feed, derived from the tx log line. */
+function describe(l: TxLog): { icon: string; text: string; zk?: boolean } {
+  const fn = l.action.split('(')[0]
+  const id = l.action.match(/^\w+\((\d+)/)?.[1]
+  switch (fn) {
+    case 'post': return l.who === 'warehouse' ? { icon: '📦', text: 'posted an order · 10 mUSDC escrowed' } : { icon: '🤝', text: 'hired a carrier robot · 3 mUSDC' }
+    case 'accept': return { icon: '✋', text: `accepted job #${id}` }
+    case 'setToteCommitment': return { icon: '🔒', text: `committed to tote for job #${id} (hash only)` }
+    case 'submitWithProof': return { icon: '🛡️', text: `ZK proof verified on-chain → paid for job #${id}`, zk: true }
+    case 'submit': return { icon: '✅', text: `delivered order #${id}` }
+    case 'confirm': return { icon: '💸', text: `released payment for job #${id}` }
+    case 'charge': return { icon: '⚡', text: 'paid the charging dock' }
+    case 'approve': return { icon: '🔑', text: 'approved spending' }
+    default: return { icon: '•', text: l.action }
+  }
+}
 
 export default function App() {
   const [logs, setLogs] = useState<TxLog[]>([])
@@ -19,7 +38,7 @@ export default function App() {
   const [started, setStarted] = useState(false)
   const [kycLevel, setKycLevel] = useState<number | null>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
-  const log = (l: TxLog) => setLogs((prev) => [l, ...prev].slice(0, 40))
+  const log = (l: TxLog) => setLogs((prev) => [l, ...prev].slice(0, 60))
 
   const robots = useRef<Robot[]>([])
   if (robots.current.length === 0) {
@@ -80,74 +99,159 @@ export default function App() {
 
   useEffect(() => draw(canvas.current, robots.current))
 
+  const count = (fn: string, who?: (w: string) => boolean) => logs.filter((l) => l.action.startsWith(fn + '(') && (!who || who(l.who))).length
+  const jobsDone = robots.current.reduce((n, r) => n + Number(stats[r.name]?.done ?? 0), 0)
+  const kpis = [
+    { n: jobsDone, l: 'jobs completed by robots' },
+    { n: count('post', (w) => w !== 'warehouse'), l: 'robot → robot hires' },
+    { n: count('submitWithProof'), l: 'ZK delivery proofs verified' },
+    { n: count('charge'), l: 'machine payments to dock' },
+  ]
+  const visibleLogs = logs.filter((l) => !l.action.startsWith('approve('))
+
   return (
-    <div style={{ display: 'flex', gap: 16, padding: 16, fontFamily: 'ui-monospace, monospace', background: '#0b0f17', color: '#e5e7eb', minHeight: '100vh' }}>
-      <div>
-        <h2 style={{ margin: '0 0 8px' }}>RoboPay Warehouse — robots paying robots on {chain.name}</h2>
-        <canvas ref={canvas} width={GRID.cols * GRID.cell} height={GRID.rows * GRID.cell} style={{ borderRadius: 8 }} />
-        <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-          <button onClick={start} disabled={started}>Start robots</button>
-          <button onClick={postOrder} disabled={!started}>Post order (10 mUSDC)</button>
+    <div className="wrap">
+      <header>
+        <div className="brand">
+          <span className="logo">RoboPay</span>
+          <span className="tag">Robots hiring and paying robots</span>
         </div>
-      </div>
-      <div style={{ flex: 1, minWidth: 320 }}>
-        <h3>Fleet</h3>
-        <table style={{ width: '100%', fontSize: 13 }}>
-          <thead><tr><th align="left">wallet</th><th align="left">status</th><th>batt</th><th>mUSDC</th><th>jobs done</th></tr></thead>
-          <tbody>
-            <tr><td>warehouse</td><td>posts orders · {kycLevel === null ? 'KYC …' : kycLevel > 0 ? <span style={{ color: '#34d399' }}>KYC L{kycLevel} ✓</span> : <span style={{ color: '#ef4444' }}>not KYC'd</span>}</td><td /><td align="center">{stats.warehouse?.usdc}</td><td /></tr>
-            {robots.current.map((r) => (
-              <tr key={r.name}>
-                <td style={{ color: FLEET_COLOR[r.role] }}>{r.name}</td>
-                <td>{r.status}</td>
-                <td align="center">{Math.round(r.battery)}%</td>
-                <td align="center">{stats[r.name]?.usdc}</td>
-                <td align="center">{stats[r.name]?.done}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <h3>On-chain log</h3>
-        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          {logs.map((l) => (
-            <div key={l.hash}>
-              <span style={{ color: '#9ca3af' }}>{new Date(l.at).toLocaleTimeString()}</span> <b>{l.who}</b> {l.action.slice(0, 60)}{' '}
-              {explorerTx(l.hash) ? <a href={explorerTx(l.hash)} target="_blank" style={{ color: '#34d399' }}>tx↗</a> : l.hash.slice(0, 10)}
+        <div className="pills">
+          <span className="pill"><i className="dot" />{chain.name} · {chain.id}</span>
+          <span className="pill">ZK proof of delivery · Noir</span>
+          <span className="pill">
+            operator {kycLevel === null ? 'KYC …' : kycLevel > 0 ? <b style={{ color: 'var(--g)' }}>KYC L{kycLevel} ✓</b> : <b style={{ color: 'var(--r)' }}>not KYC'd</b>}
+          </span>
+        </div>
+      </header>
+
+      <section className="kpis">
+        {kpis.map((k) => (
+          <div className="kpi" key={k.l}>
+            <div className="n">{k.n}</div>
+            <div className="l">{k.l}</div>
+          </div>
+        ))}
+      </section>
+
+      <section className="main">
+        <div className="card">
+          <h3><span>Warehouse floor</span><span className="mono" style={{ textTransform: 'none', letterSpacing: 0 }}>live simulation</span></h3>
+          <canvas ref={canvas} width={GRID.cols * GRID.cell * DPR} height={GRID.rows * GRID.cell * DPR} />
+          <div className="controls">
+            <button onClick={start} disabled={started}>▶ Start robots</button>
+            <button className="primary" onClick={postOrder} disabled={!started}>Post order · 10 mUSDC</button>
+            <span className="hint">{started ? 'Each robot signs its own HSK transactions.' : 'Robots approve the market from their own wallets on start.'}</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 18 }}>
+          <div className="card">
+            <h3><span>Fleet</span><span className="mono" style={{ textTransform: 'none', letterSpacing: 0 }}>mUSDC · jobs</span></h3>
+            <div className="fleet">
+              <div className="bot">
+                <div className="av" style={{ background: 'linear-gradient(135deg,#9945ff,#14f195)' }}>WH</div>
+                <div>
+                  <div className="name">warehouse <span className="badge" style={{ background: 'rgba(20,241,149,.12)', color: 'var(--g)' }}>{kycLevel ? `KYC L${kycLevel}` : 'KYC'}</span></div>
+                  <div className="st">posts orders · pays on delivery</div>
+                </div>
+                <div className="right"><div className="bal">{fmt(stats.warehouse?.usdc)}</div></div>
+              </div>
+              {robots.current.map((r) => (
+                <div className="bot" key={r.name}>
+                  <div className="av" style={{ background: FLEET_COLOR[r.role] }}>{r.name[0].toUpperCase() + r.name.slice(-1)}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="name">
+                      {r.name}
+                      <span className="badge" style={{ background: 'rgba(255,255,255,.06)', color: FLEET_COLOR[r.role] }}>{r.role === 'picker' ? 'fleet A' : 'fleet B'}</span>
+                    </div>
+                    <div className="st" title={r.status}>{r.status}</div>
+                    <div className="batt"><i style={{ width: `${r.battery}%`, background: r.battery < 35 ? 'var(--r)' : 'var(--g)' }} /></div>
+                  </div>
+                  <div className="right">
+                    <div className="bal">{fmt(stats[r.name]?.usdc)}</div>
+                    <div>{stats[r.name]?.done ?? '–'} done</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="card">
+            <h3><span>On-chain activity</span><span className="mono" style={{ textTransform: 'none', letterSpacing: 0 }}>{visibleLogs.length} tx</span></h3>
+            <div className="feed">
+              {visibleLogs.length === 0 && <div className="empty">Start the robots and post an order.</div>}
+              {visibleLogs.map((l) => {
+                const d = describe(l)
+                const url = explorerTx(l.hash)
+                return (
+                  <div className={`ev${d.zk ? ' zk' : ''}`} key={l.hash}>
+                    <div className="ic">{d.icon}</div>
+                    <div className="t"><b>{l.who}</b> {d.text}<div className="when">{new Date(l.at).toLocaleTimeString()}</div></div>
+                    {url ? <a href={url} target="_blank" rel="noreferrer">tx ↗</a> : <span className="when">{l.hash.slice(0, 8)}</span>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
+
+const fmt = (v?: string) => (v === undefined ? '–' : Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }))
 
 function draw(c: HTMLCanvasElement | null, robots: Robot[]) {
   const ctx = c?.getContext('2d')
   if (!c || !ctx) return
   const s = GRID.cell
-  ctx.fillStyle = '#111827'
-  ctx.fillRect(0, 0, c.width, c.height)
-  ctx.strokeStyle = '#1f2937'
-  for (let x = 0; x <= GRID.cols; x++) { ctx.beginPath(); ctx.moveTo(x * s, 0); ctx.lineTo(x * s, c.height); ctx.stroke() }
-  for (let y = 0; y <= GRID.rows; y++) { ctx.beginPath(); ctx.moveTo(0, y * s); ctx.lineTo(c.width, y * s); ctx.stroke() }
-  const tile = (p: { x: number; y: number }, color: string, label: string) => {
-    ctx.fillStyle = color
-    ctx.fillRect(p.x * s + 2, p.y * s + 2, s - 4, s - 4)
-    ctx.fillStyle = '#fff'
-    ctx.font = '11px monospace'
-    ctx.fillText(label, p.x * s + 5, p.y * s + s / 2 + 4)
+  const W = GRID.cols * s, H = GRID.rows * s
+  const mid = (p: Point) => ({ x: p.x * s + s / 2, y: p.y * s + s / 2 })
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+
+  const bg = ctx.createLinearGradient(0, 0, W, H)
+  bg.addColorStop(0, '#0e0b18'); bg.addColorStop(1, '#08120f')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = 'rgba(255,255,255,.08)'
+  for (let x = 1; x < GRID.cols; x++) for (let y = 1; y < GRID.rows; y++) { ctx.beginPath(); ctx.arc(x * s, y * s, 1, 0, Math.PI * 2); ctx.fill() }
+
+  const zone = (p: Point, color: string, label: string, glow = false) => {
+    const x = p.x * s + 3, y = p.y * s + 3, w = s - 6
+    if (glow) { ctx.shadowColor = color; ctx.shadowBlur = 18 }
+    ctx.fillStyle = color + '33'; ctx.strokeStyle = color
+    ctx.lineWidth = 1.5
+    ctx.beginPath(); ctx.roundRect(x, y, w, w, 7); ctx.fill(); ctx.stroke()
+    ctx.shadowBlur = 0
+    ctx.fillStyle = '#f4f2ff'; ctx.font = '600 10px "JetBrains Mono", monospace'; ctx.textAlign = 'center'
+    ctx.fillText(label, x + w / 2, y + w / 2 + 3.5)
   }
-  Object.entries(SHELVES).forEach(([name, p]) => tile(p, '#4b5563', name))
-  tile(PACK, '#059669', 'PACK')
-  tile(DOCK, '#7c3aed', '⚡')
+  Object.entries(SHELVES).forEach(([name, p]) => zone(p, '#8b87a3', name))
+  zone(PACK, '#14f195', 'PACK', true)
+  zone(DOCK, '#9945ff', '⚡', true)
+
   for (const r of robots) {
-    const cx = r.pos.x * s + s / 2, cy = r.pos.y * s + s / 2
-    ctx.fillStyle = FLEET_COLOR[r.role]
-    ctx.beginPath(); ctx.arc(cx, cy, s / 2.6, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = r.battery < 35 ? '#ef4444' : '#22c55e'
-    ctx.fillRect(cx - s / 2.6, cy + s / 2.4, (r.battery / 100) * (s / 1.3), 3)
-    ctx.fillStyle = '#000'
-    ctx.font = 'bold 10px monospace'
-    ctx.fillText(r.name.replace(/[a-z]+/, (m) => m[0].toUpperCase()), cx - 7, cy + 4)
+    const color = FLEET_COLOR[r.role]
+    const { x: cx, y: cy } = mid(r.pos)
+    // Dotted path to where the robot is heading.
+    if (r.destination) {
+      const d = mid(r.destination)
+      ctx.setLineDash([3, 5]); ctx.strokeStyle = color + 'aa'; ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(d.x, cy); ctx.lineTo(d.x, d.y); ctx.stroke()
+      ctx.setLineDash([])
+    }
+    // Body with glow.
+    ctx.shadowColor = color; ctx.shadowBlur = 16
+    ctx.fillStyle = color
+    ctx.beginPath(); ctx.arc(cx, cy, s / 3.1, 0, Math.PI * 2); ctx.fill()
+    ctx.shadowBlur = 0
+    // Battery ring.
+    ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 3
+    ctx.beginPath(); ctx.arc(cx, cy, s / 2.35, 0, Math.PI * 2); ctx.stroke()
+    ctx.strokeStyle = r.battery < 35 ? '#ff4d6d' : '#14f195'
+    ctx.beginPath(); ctx.arc(cx, cy, s / 2.35, -Math.PI / 2, -Math.PI / 2 + (r.battery / 100) * Math.PI * 2); ctx.stroke()
+    ctx.fillStyle = '#0b0a10'; ctx.font = '700 10px "JetBrains Mono", monospace'; ctx.textAlign = 'center'
+    ctx.fillText(r.name[0].toUpperCase() + r.name.slice(-1), cx, cy + 3.5)
   }
 }

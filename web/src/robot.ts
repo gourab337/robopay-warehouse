@@ -93,6 +93,7 @@ export class Robot {
   battery = 100
   status = 'booting'
   private target: Point | null = null
+  get destination(): Point | null { return this.target }
   private arrived: (() => void) | null = null
 
   readonly name: string

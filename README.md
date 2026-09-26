@@ -6,6 +6,8 @@ Demo: 3-minute live run on HSK Chain testnet · [launch video](video/robopay-lau
 ## Launch video
 [`video/robopay-launch.mp4`](video/robopay-launch.mp4) (57s, 1080p). Rendered frame by frame from `video/film.html` with `video/render.cjs` (Playwright) + ffmpeg; original soundtrack synthesized in `video/music.py` (no samples).
 
+![RoboPay dashboard live on HSK testnet](docs/dashboard.png)
+
 ## Track selection
 | Track | How RoboPay fits |
 |---|---|
